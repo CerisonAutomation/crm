@@ -51,6 +51,12 @@
 			}
 		},
 		{
+			"files": ["lib/settings/**", "lib/business/settings.ts"],
+			"rules": {
+				"anti-slop/no-unknown-parameters": "off"
+			}
+		},
+		{
 			"files": [
 				"packages/telemetry/src/**",
 				"apps/api/src/logging/**",
