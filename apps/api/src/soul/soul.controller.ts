@@ -2,9 +2,16 @@
  * Soul routes: white-label identity profiles + inheritance-resolved view.
  */
 
-import { Body, Controller, Get, NotFoundException, Param, Post } from "@nestjs/common";
-import { ApiOperation, ApiTags } from "@nestjs/swagger";
 import type { auth } from "@crm/auth";
+import {
+	Body,
+	Controller,
+	Get,
+	NotFoundException,
+	Param,
+	Post,
+} from "@nestjs/common";
+import { ApiOperation, ApiTags } from "@nestjs/swagger";
 import { Session, type UserSession } from "@thallesp/nestjs-better-auth";
 import { SoulService } from "./soul.service";
 

@@ -4,23 +4,19 @@
  * schema, structured results, serialized failures.
  */
 
-import { Injectable } from "@nestjs/common";
-import { InjectDatabase } from "../database/database.constants";
-import { z } from "zod";
 import type { Db } from "@crm/db";
+import { Injectable } from "@nestjs/common";
+import { z } from "zod";
+import { AgentGovernanceService } from "../agent-governance/agent-governance.service";
+import { BookingService } from "../booking/booking.service";
+import { BrainService } from "../brain/brain.service";
+import { ChannelsService } from "../channels/channels.service";
+import { InjectDatabase } from "../database/database.constants";
 import { RoutinesService } from "../routines/routines.service";
+import { triggerTestErrorWorkflow } from "../workflows/trigger-test-error.workflow";
 import { WorkflowRegistry } from "../workflows/workflow-registry.service";
 import { WorkflowRunner } from "../workflows/workflow-runner.service";
-import {
-	mcpFailure,
-	type McpTool,
-	type McpToolResult,
-} from "./mcp.types";
-import { triggerTestErrorWorkflow } from "../workflows/trigger-test-error.workflow";
-import { BookingService } from "../booking/booking.service";
-import { ChannelsService } from "../channels/channels.service";
-import { BrainService } from "../brain/brain.service";
-import { AgentGovernanceService } from "../agent-governance/agent-governance.service";
+import { type McpTool, type McpToolResult, mcpFailure } from "./mcp.types";
 
 const idSchema = z.string().min(1).max(64);
 const pageSchema = z.object({
@@ -71,7 +67,8 @@ export class McpToolsService {
 		return {
 			name: "booking_slots",
 			title: "Booking availability",
-			description: "Free booking slots for an appointment type on a given UTC day.",
+			description:
+				"Free booking slots for an appointment type on a given UTC day.",
 			annotations: { readOnlyHint: true },
 			inputSchema: z.object({
 				ownerUserId: idSchema,
@@ -85,8 +82,13 @@ export class McpToolsService {
 					day: string;
 				};
 				const dayDate = new Date(day);
-				if (Number.isNaN(dayDate.getTime())) return mcpFailure("validation", "day must be an ISO date");
-				const slots = await this.bookings.slotsForDay(ownerUserId, appointmentTypeId, dayDate);
+				if (Number.isNaN(dayDate.getTime()))
+					return mcpFailure("validation", "day must be an ISO date");
+				const slots = await this.bookings.slotsForDay(
+					ownerUserId,
+					appointmentTypeId,
+					dayDate,
+				);
 				return {
 					text: `${slots.length} slot(s) available`,
 					structuredContent: {
@@ -104,7 +106,8 @@ export class McpToolsService {
 		return {
 			name: "booking_create",
 			title: "Create booking",
-			description: "Books a slot on an appointment type (conflict-guarded, fires booking.created).",
+			description:
+				"Books a slot on an appointment type (conflict-guarded, fires booking.created).",
 			inputSchema: z.object({
 				ownerUserId: idSchema,
 				appointmentTypeId: idSchema.optional(),
@@ -125,7 +128,8 @@ export class McpToolsService {
 					notes?: string;
 				};
 				const startsAt = new Date(data.startsAt);
-				if (Number.isNaN(startsAt.getTime())) return mcpFailure("validation", "startsAt must be an ISO date");
+				if (Number.isNaN(startsAt.getTime()))
+					return mcpFailure("validation", "startsAt must be an ISO date");
 				try {
 					const booking = await this.bookings.createBooking(data.ownerUserId, {
 						appointmentTypeId: data.appointmentTypeId ?? null,
@@ -146,7 +150,10 @@ export class McpToolsService {
 						},
 					};
 				} catch (error) {
-					return mcpFailure("conflict", error instanceof Error ? error.message : String(error));
+					return mcpFailure(
+						"conflict",
+						error instanceof Error ? error.message : String(error),
+					);
 				}
 			},
 		};
@@ -181,14 +188,20 @@ export class McpToolsService {
 						data.idempotencyKey,
 					);
 					return {
-						text: result.outcome === "executed" ? "message sent" : "send skipped (already claimed)",
+						text:
+							result.outcome === "executed"
+								? "message sent"
+								: "send skipped (already claimed)",
 						structuredContent: {
 							outcome: result.outcome,
 							externalMessageId: result.result?.externalMessageId ?? null,
 						},
 					};
 				} catch (error) {
-					return mcpFailure("conflict", error instanceof Error ? error.message : String(error));
+					return mcpFailure(
+						"conflict",
+						error instanceof Error ? error.message : String(error),
+					);
 				}
 			},
 		};
@@ -217,15 +230,25 @@ export class McpToolsService {
 					source?: string;
 				};
 				try {
-					const note = await this.brains.addNote(data.ownerUserId, data.brainId, {
-						title: data.title,
-						body: data.body,
-						tags: data.tags,
-						source: data.source ?? "mcp",
-					});
-					return { text: "note added", structuredContent: { noteId: note.id, tags: note.tags } };
+					const note = await this.brains.addNote(
+						data.ownerUserId,
+						data.brainId,
+						{
+							title: data.title,
+							body: data.body,
+							tags: data.tags,
+							source: data.source ?? "mcp",
+						},
+					);
+					return {
+						text: "note added",
+						structuredContent: { noteId: note.id, tags: note.tags },
+					};
 				} catch (error) {
-					return mcpFailure("conflict", error instanceof Error ? error.message : String(error));
+					return mcpFailure(
+						"conflict",
+						error instanceof Error ? error.message : String(error),
+					);
 				}
 			},
 		};
@@ -260,7 +283,8 @@ export class McpToolsService {
 		return {
 			name: "agent_draft_resolve",
 			title: "Resolve agent draft",
-			description: "Approves or rejects a pending agent action draft (compare-and-swap).",
+			description:
+				"Approves or rejects a pending agent action draft (compare-and-swap).",
 			inputSchema: z.object({
 				draftId: idSchema,
 				decision: z.enum(["approved", "rejected"]),
@@ -292,12 +316,15 @@ export class McpToolsService {
 		return {
 			name: "system_health",
 			title: "System health",
-			description: "Reports API and database liveness plus automation counters.",
+			description:
+				"Reports API and database liveness plus automation counters.",
 			annotations: { readOnlyHint: true },
 			inputSchema: z.object({}),
 			execute: async (): Promise<McpToolResult> => {
 				const [openRuns, activeRoutines, activeWebhooks] = await Promise.all([
-					this.db.workflowRun.count({ where: { status: { in: ["pending", "running"] } } }),
+					this.db.workflowRun.count({
+						where: { status: { in: ["pending", "running"] } },
+					}),
 					this.db.routine.count({ where: { enabled: true } }),
 					this.db.webhook.count({ where: { enabled: true } }),
 				]);
@@ -338,7 +365,13 @@ export class McpToolsService {
 					orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
 					take: limit,
 					skip: offset,
-					select: { id: true, firstName: true, lastName: true, email: true, title: true },
+					select: {
+						id: true,
+						firstName: true,
+						lastName: true,
+						email: true,
+						title: true,
+					},
 				});
 				return {
 					text: `${rows.length} contact(s) matched`,
@@ -360,8 +393,12 @@ export class McpToolsService {
 				const contact = await this.db.contact.findUnique({ where: { id } });
 				if (!contact) return mcpFailure("notFound", `No contact with id ${id}`);
 				return {
-					text: `${contact.firstName ?? ""} ${contact.lastName ?? ""}`.trim() || contact.id,
-					structuredContent: { contact: contact as unknown as Record<string, unknown> },
+					text:
+						`${contact.firstName ?? ""} ${contact.lastName ?? ""}`.trim() ||
+						contact.id,
+					structuredContent: {
+						contact: contact as unknown as Record<string, unknown>,
+					},
 				};
 			},
 		};
@@ -375,14 +412,20 @@ export class McpToolsService {
 			annotations: { readOnlyHint: true },
 			inputSchema: pageSchema,
 			execute: async (input): Promise<McpToolResult> => {
-				const { limit, offset } = input as unknown as { limit: number; offset: number };
+				const { limit, offset } = input as unknown as {
+					limit: number;
+					offset: number;
+				};
 				const rows = await this.db.company.findMany({
 					orderBy: { name: "asc" },
 					take: limit,
 					skip: offset,
 					select: { id: true, name: true, domain: true, industry: true },
 				});
-				return { text: `${rows.length} company/companies`, structuredContent: { companies: rows } };
+				return {
+					text: `${rows.length} company/companies`,
+					structuredContent: { companies: rows },
+				};
 			},
 		};
 	}
@@ -402,12 +445,24 @@ export class McpToolsService {
 				};
 				const rows = await this.db.deal.findMany({
 					where: stage ? { stage: stage as never } : undefined,
-					orderBy: [{ amount: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }],
+					orderBy: [
+						{ amount: { sort: "desc", nulls: "last" } },
+						{ createdAt: "desc" },
+					],
 					take: limit,
 					skip: offset,
-					select: { id: true, name: true, stage: true, amount: true, expectedCloseDate: true },
+					select: {
+						id: true,
+						name: true,
+						stage: true,
+						amount: true,
+						expectedCloseDate: true,
+					},
 				});
-				return { text: `${rows.length} deal(s)`, structuredContent: { deals: rows } };
+				return {
+					text: `${rows.length} deal(s)`,
+					structuredContent: { deals: rows },
+				};
 			},
 		};
 	}
@@ -423,7 +478,12 @@ export class McpToolsService {
 				const { id } = input as unknown as { id: string };
 				const deal = await this.db.deal.findUnique({ where: { id } });
 				if (!deal) return mcpFailure("notFound", `No deal with id ${id}`);
-				return { text: deal.name, structuredContent: { deal: deal as unknown as Record<string, unknown> } };
+				return {
+					text: deal.name,
+					structuredContent: {
+						deal: deal as unknown as Record<string, unknown>,
+					},
+				};
 			},
 		};
 	}
@@ -436,14 +496,20 @@ export class McpToolsService {
 			annotations: { readOnlyHint: true },
 			inputSchema: pageSchema,
 			execute: async (input): Promise<McpToolResult> => {
-				const { limit, offset } = input as unknown as { limit: number; offset: number };
+				const { limit, offset } = input as unknown as {
+					limit: number;
+					offset: number;
+				};
 				const rows = await this.db.activity.findMany({
 					orderBy: { createdAt: "desc" },
 					take: limit,
 					skip: offset,
 					select: { id: true, type: true, subject: true, createdAt: true },
 				});
-				return { text: `${rows.length} activity/activities`, structuredContent: { activities: rows } };
+				return {
+					text: `${rows.length} activity/activities`,
+					structuredContent: { activities: rows },
+				};
 			},
 		};
 	}
@@ -462,7 +528,10 @@ export class McpToolsService {
 					orderBy: { createdAt: "desc" },
 					take: 50,
 				});
-				return { text: `${rows.length} routine(s)`, structuredContent: { routines: rows } };
+				return {
+					text: `${rows.length} routine(s)`,
+					structuredContent: { routines: rows },
+				};
 			},
 		};
 	}
@@ -478,10 +547,19 @@ export class McpToolsService {
 					routineId: string;
 					ownerUserId: string;
 				};
-				const routine = await this.db.routine.findUnique({ where: { id: routineId } });
-				if (!routine) return mcpFailure("notFound", `No routine with id ${routineId}`);
-				const runId = await this.routines.triggerManually(routineId, ownerUserId);
-				return { text: `Queued run ${runId}`, structuredContent: { routineRunId: runId } };
+				const routine = await this.db.routine.findUnique({
+					where: { id: routineId },
+				});
+				if (!routine)
+					return mcpFailure("notFound", `No routine with id ${routineId}`);
+				const runId = await this.routines.triggerManually(
+					routineId,
+					ownerUserId,
+				);
+				return {
+					text: `Queued run ${runId}`,
+					structuredContent: { routineRunId: runId },
+				};
 			},
 		};
 	}
@@ -496,7 +574,10 @@ export class McpToolsService {
 			execute: async (input): Promise<McpToolResult> => {
 				const { ownerUserId } = input as unknown as { ownerUserId: string };
 				const webhooks = await this.routinesWebhooks(ownerUserId);
-				return { text: `${webhooks.length} webhook(s)`, structuredContent: { webhooks } };
+				return {
+					text: `${webhooks.length} webhook(s)`,
+					structuredContent: { webhooks },
+				};
 			},
 		};
 	}
@@ -526,7 +607,8 @@ export class McpToolsService {
 		return {
 			name: "workflows_list",
 			title: "List workflows",
-			description: "Lists registered workflow ids and the ones MCP may dispatch.",
+			description:
+				"Lists registered workflow ids and the ones MCP may dispatch.",
 			annotations: { readOnlyHint: true },
 			inputSchema: z.object({}),
 			execute: (): McpToolResult => ({
@@ -555,9 +637,16 @@ export class McpToolsService {
 					message: string;
 				};
 				if (workflowName !== "trigger-test-error") {
-					return mcpFailure("authorization", `Workflow ${workflowName} is not dispatchable`);
+					return mcpFailure(
+						"authorization",
+						`Workflow ${workflowName} is not dispatchable`,
+					);
 				}
-				const outcome = await this.runner.run(triggerTestErrorWorkflow, { message }, {});
+				const outcome = await this.runner.run(
+					triggerTestErrorWorkflow,
+					{ message },
+					{},
+				);
 				if (outcome.ok) {
 					return { text: "ok", structuredContent: { runId: outcome.runId } };
 				}

@@ -3,6 +3,7 @@
  * reflection events, taste sessions and durable eval runs.
  */
 
+import type { auth } from "@crm/auth";
 import {
 	Body,
 	Controller,
@@ -14,7 +15,6 @@ import {
 	Query,
 } from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
-import type { auth } from "@crm/auth";
 import { Session, type UserSession } from "@thallesp/nestjs-better-auth";
 import { EventDispatcherService } from "../events/event-dispatcher.service";
 import {
@@ -36,14 +36,24 @@ export class AgentGovernanceController {
 
 	@Post("receipts")
 	@ApiOperation({ summary: "Record an agent run receipt" })
-	async recordReceipt(@Session() session: CrmSession, @Body() body: ReceiptInput) {
-		return { receipt: await this.governance.recordReceipt(session.user.id, body) };
+	async recordReceipt(
+		@Session() session: CrmSession,
+		@Body() body: ReceiptInput,
+	) {
+		return {
+			receipt: await this.governance.recordReceipt(session.user.id, body),
+		};
 	}
 
 	@Get("receipts")
 	@ApiOperation({ summary: "List run receipts" })
-	async receipts(@Session() session: CrmSession, @Query("agentKind") agentKind?: string) {
-		return { receipts: await this.governance.listReceipts(session.user.id, agentKind) };
+	async receipts(
+		@Session() session: CrmSession,
+		@Query("agentKind") agentKind?: string,
+	) {
+		return {
+			receipts: await this.governance.listReceipts(session.user.id, agentKind),
+		};
 	}
 
 	@Post("drafts")
@@ -78,21 +88,32 @@ export class AgentGovernanceController {
 		@Param("id") id: string,
 		@Body() body: { decision: "approved" | "rejected"; note?: string },
 	) {
-		const resolved = await this.governance.resolveDraft(id, body.decision, session.user.id, body.note);
+		const resolved = await this.governance.resolveDraft(
+			id,
+			body.decision,
+			session.user.id,
+			body.note,
+		);
 		if (resolved) {
 			await this.events.dispatch({
 				event: "agent.draft.resolved",
 				ownerUserId: session.user.id,
 				entityId: id,
 				at: new Date(),
-				payload: { draftId: id, decision: body.decision, note: body.note ?? null },
+				payload: {
+					draftId: id,
+					decision: body.decision,
+					note: body.note ?? null,
+				},
 			});
 		}
 		return { resolved };
 	}
 
 	@Post("drafts/:id/execute")
-	@ApiOperation({ summary: "Mark an approved draft executed (compare-and-swap)" })
+	@ApiOperation({
+		summary: "Mark an approved draft executed (compare-and-swap)",
+	})
 	async executeDraft(@Param("id") id: string) {
 		return { executed: await this.governance.markExecuted(id) };
 	}
@@ -103,34 +124,54 @@ export class AgentGovernanceController {
 		@Session() session: CrmSession,
 		@Body() body: { runReceiptId?: string; kind: string; content: string },
 	) {
-		return { reflection: await this.governance.recordReflection(session.user.id, body) };
+		return {
+			reflection: await this.governance.recordReflection(session.user.id, body),
+		};
 	}
 
 	@Get("reflections")
 	@ApiOperation({ summary: "List reflection events" })
-	async reflections(@Session() session: CrmSession, @Query("kind") kind?: string) {
-		return { reflections: await this.governance.listReflections(session.user.id, kind) };
+	async reflections(
+		@Session() session: CrmSession,
+		@Query("kind") kind?: string,
+	) {
+		return {
+			reflections: await this.governance.listReflections(session.user.id, kind),
+		};
 	}
 
 	@Post("taste")
 	@ApiOperation({ summary: "Record a taste (preference) session" })
 	async taste(
 		@Session() session: CrmSession,
-		@Body() body: { topic: string; preferences: Record<string, unknown>; confidence?: number },
+		@Body() body: {
+			topic: string;
+			preferences: Record<string, unknown>;
+			confidence?: number;
+		},
 	) {
 		return { taste: await this.governance.recordTaste(session.user.id, body) };
 	}
 
 	@Get("taste/:topic")
 	@ApiOperation({ summary: "Taste sessions for a topic" })
-	async tasteForTopic(@Session() session: CrmSession, @Param("topic") topic: string) {
-		return { sessions: await this.governance.tasteForTopic(session.user.id, topic) };
+	async tasteForTopic(
+		@Session() session: CrmSession,
+		@Param("topic") topic: string,
+	) {
+		return {
+			sessions: await this.governance.tasteForTopic(session.user.id, topic),
+		};
 	}
 
 	@Post("eval-runs")
-	@ApiOperation({ summary: "Record a durable eval run (derived summaries only)" })
+	@ApiOperation({
+		summary: "Record a durable eval run (derived summaries only)",
+	})
 	async evalRun(@Session() session: CrmSession, @Body() body: EvalRunInput) {
-		return { evalRun: await this.governance.recordEvalRun(session.user.id, body) };
+		return {
+			evalRun: await this.governance.recordEvalRun(session.user.id, body),
+		};
 	}
 
 	@Get("eval-runs")
@@ -140,9 +181,14 @@ export class AgentGovernanceController {
 		@Query("targetKind") targetKind: string,
 		@Query("targetId") targetId: string,
 	) {
-		if (!targetKind || !targetId) throw new ForbiddenException("targetKind and targetId are required");
+		if (!targetKind || !targetId)
+			throw new ForbiddenException("targetKind and targetId are required");
 		return {
-			evalRuns: await this.governance.evalRunsForTarget(session.user.id, targetKind, targetId),
+			evalRuns: await this.governance.evalRunsForTarget(
+				session.user.id,
+				targetKind,
+				targetId,
+			),
 		};
 	}
 }

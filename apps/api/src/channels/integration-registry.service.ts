@@ -29,7 +29,9 @@ export class IntegrationRegistryService {
 
 	/** Tier2-style lazy filter: adapters whose env gates are all satisfied. */
 	getConfigured(env: NodeJS.ProcessEnv = process.env): AdapterDescriptor[] {
-		return this.getAll().filter((descriptor) => descriptor.adapter.isConfigured(env));
+		return this.getAll().filter((descriptor) =>
+			descriptor.adapter.isConfigured(env),
+		);
 	}
 
 	/** Tier1 eager list (registered adapters regardless of env). */
@@ -53,8 +55,13 @@ export class IntegrationRegistryService {
 }
 
 /** Helper for defining env-gated adapters (tier2 semantics). */
-export function hasEnv(keys: string[], env: NodeJS.ProcessEnv = process.env): boolean {
-	return keys.every((key) => typeof env[key] === "string" && (env[key] as string).length > 0);
+export function hasEnv(
+	keys: string[],
+	env: NodeJS.ProcessEnv = process.env,
+): boolean {
+	return keys.every(
+		(key) => typeof env[key] === "string" && (env[key] as string).length > 0,
+	);
 }
 
 /**
@@ -73,12 +80,16 @@ export class ProviderEnvAdapter implements ChannelAdapter {
 		return hasEnv(this.requiredEnv, env);
 	}
 
-	async healthCheck(env: NodeJS.ProcessEnv = process.env): Promise<{ ok: boolean; detail?: string }> {
+	async healthCheck(
+		env: NodeJS.ProcessEnv = process.env,
+	): Promise<{ ok: boolean; detail?: string }> {
 		if (this.probe) return this.probe();
 		const configured = this.isConfigured(env);
 		return {
 			ok: configured,
-			detail: configured ? "env present" : `missing ${this.requiredEnv.join(", ")}`,
+			detail: configured
+				? "env present"
+				: `missing ${this.requiredEnv.join(", ")}`,
 		};
 	}
 }

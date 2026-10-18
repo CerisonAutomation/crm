@@ -43,9 +43,9 @@ export async function getHandoffs(orgId: string, filters?: {
   return db.handoff.findMany({
     where: {
       orgId,
-      ...(filters?.caseId ? { caseId: filters.caseId } : {}),
-      ...(filters?.status ? { status: filters.status } : {}),
-      ...(filters?.partnerType ? { partnerType: filters.partnerType } : {}),
+      ...(filters?.caseId ? { caseId: filters.caseId } : undefined),
+      ...(filters?.status ? { status: filters.status } : undefined),
+      ...(filters?.partnerType ? { partnerType: filters.partnerType } : undefined),
     },
     orderBy: { createdAt: "desc" },
   });
@@ -57,9 +57,9 @@ export async function updateHandoff(id: string, input: UpdateHandoffInput) {
     where: { id },
     data: {
       ...rest,
-      ...(documentRefs ? { documentRefs: JSON.stringify(documentRefs) } : {}),
-      ...(input.status === "SENT" ? { sentAt: new Date() } : {}),
-      ...(input.status === "ACKNOWLEDGED" ? { acknowledgedAt: new Date() } : {}),
+      ...(documentRefs ? { documentRefs: JSON.stringify(documentRefs) } : undefined),
+      ...(input.status === "SENT" ? { sentAt: new Date() } : undefined),
+      ...(input.status === "ACKNOWLEDGED" ? { acknowledgedAt: new Date() } : undefined),
     },
   });
 }

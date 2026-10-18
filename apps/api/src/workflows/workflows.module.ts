@@ -4,11 +4,10 @@
 
 import { Module } from "@nestjs/common";
 import { DatabaseModule } from "../database/database.module";
-import { WorkflowRunner, WORKFLOW_LEDGER_TOKEN } from "./workflow-runner.service";
-import { WorkflowGatesService } from "./workflow-gates.service";
-import { SendClaimService } from "./send-claim.service";
-import { WorkflowLedgerService } from "./workflow-ledger.service";
 import { ResumableWorkflowService } from "./resumable-workflow.service";
+import { SendClaimService } from "./send-claim.service";
+import { WorkflowGatesService } from "./workflow-gates.service";
+import { WorkflowLedgerService } from "./workflow-ledger.service";
 import { WorkflowRegistry } from "./workflow-registry.service";
 import {
 	PrismaWorkflowRunRepository,
@@ -18,6 +17,10 @@ import {
 	WORKFLOW_RUN_REPOSITORY,
 	WORKFLOW_STEP_RUN_REPOSITORY,
 } from "./workflow-repository.tokens";
+import {
+	WORKFLOW_LEDGER_TOKEN,
+	WorkflowRunner,
+} from "./workflow-runner.service";
 
 @Module({
 	imports: [DatabaseModule],
@@ -38,6 +41,13 @@ import {
 		},
 		WorkflowRunner,
 	],
-	exports: [WorkflowRunner, WorkflowRegistry, WorkflowGatesService, SendClaimService, WorkflowLedgerService, ResumableWorkflowService],
+	exports: [
+		WorkflowRunner,
+		WorkflowRegistry,
+		WorkflowGatesService,
+		SendClaimService,
+		WorkflowLedgerService,
+		ResumableWorkflowService,
+	],
 })
 export class WorkflowsModule {}

@@ -1,11 +1,18 @@
 import { describe, expect, it } from "bun:test";
-import { predicateMatches, WorkflowGatesService } from "../src/workflows/workflow-gates.service";
+import {
+	predicateMatches,
+	WorkflowGatesService,
+} from "../src/workflows/workflow-gates.service";
 
 type Row = Record<string, unknown> & { id: string };
 
 function matchesWhere(row: Row, where: Record<string, unknown>): boolean {
 	for (const [key, condition] of Object.entries(where)) {
-		if (condition !== null && typeof condition === "object" && "in" in (condition as object)) {
+		if (
+			condition !== null &&
+			typeof condition === "object" &&
+			"in" in (condition as object)
+		) {
 			const list = (condition as { in: unknown[] }).in;
 			if (!list.includes(row[key])) return false;
 		} else if (
@@ -14,10 +21,12 @@ function matchesWhere(row: Row, where: Record<string, unknown>): boolean {
 			("lte" in (condition as object) || "not" in (condition as object))
 		) {
 			const spec = condition as { lte?: unknown; not?: unknown };
-			if (spec.not !== undefined && spec.not !== null && row[key] === spec.not) return false;
+			if (spec.not !== undefined && spec.not !== null && row[key] === spec.not)
+				return false;
 			if (spec.lte !== undefined && spec.lte !== null) {
 				const rowTime = (row[key] as Date).getTime();
-				if (row[key] === null || rowTime > (spec.lte as Date).getTime()) return false;
+				if (row[key] === null || rowTime > (spec.lte as Date).getTime())
+					return false;
 			}
 		} else if (row[key] !== condition) {
 			return false;
@@ -39,7 +48,13 @@ class InMemoryGatesDb {
 		},
 		findMany: async ({ where }: { where: Record<string, unknown> }) =>
 			this.waits.filter((row) => matchesWhere(row, where)),
-		updateMany: async ({ where, data }: { where: Record<string, unknown>; data: Record<string, unknown> }) => {
+		updateMany: async ({
+			where,
+			data,
+		}: {
+			where: Record<string, unknown>;
+			data: Record<string, unknown>;
+		}) => {
 			const hits = this.waits.filter((row) => matchesWhere(row, where));
 			for (const row of hits) Object.assign(row, data);
 			return { count: hits.length };
@@ -54,7 +69,13 @@ class InMemoryGatesDb {
 		},
 		findMany: async ({ where }: { where: Record<string, unknown> }) =>
 			this.approvals.filter((row) => matchesWhere(row, where)),
-		updateMany: async ({ where, data }: { where: Record<string, unknown>; data: Record<string, unknown> }) => {
+		updateMany: async ({
+			where,
+			data,
+		}: {
+			where: Record<string, unknown>;
+			data: Record<string, unknown>;
+		}) => {
 			const hits = this.approvals.filter((row) => matchesWhere(row, where));
 			for (const row of hits) Object.assign(row, data);
 			return { count: hits.length };
@@ -69,8 +90,15 @@ function service(): { gates: WorkflowGatesService; db: InMemoryGatesDb } {
 
 describe("predicateMatches (frozen predicates)", () => {
 	it("matches when every frozen key equals the event value", () => {
-		expect(predicateMatches({ contactId: "c1", stage: "won" }, { contactId: "c1", stage: "won", extra: 1 })).toBe(true);
-		expect(predicateMatches({ contactId: "c1" }, { contactId: "c2" })).toBe(false);
+		expect(
+			predicateMatches(
+				{ contactId: "c1", stage: "won" },
+				{ contactId: "c1", stage: "won", extra: 1 },
+			),
+		).toBe(true);
+		expect(predicateMatches({ contactId: "c1" }, { contactId: "c2" })).toBe(
+			false,
+		);
 		expect(predicateMatches({}, { anything: true })).toBe(true);
 	});
 });
@@ -102,7 +130,9 @@ describe("workflow waits", () => {
 			matchPredicate: { dealId: "d1" },
 			timeoutAt: null,
 		});
-		const resumed = await gates.resumeByEvent("deal.updated", { dealId: "other" });
+		const resumed = await gates.resumeByEvent("deal.updated", {
+			dealId: "other",
+		});
 		expect(resumed).toBeNull();
 	});
 
@@ -147,8 +177,12 @@ describe("workflow approvals", () => {
 			approverHint: "finance",
 		});
 
-		expect(await gates.resolveApproval(approval.id, "approved", "user-1")).toBe(true);
-		expect(await gates.resolveApproval(approval.id, "rejected", "user-2")).toBe(false);
+		expect(await gates.resolveApproval(approval.id, "approved", "user-1")).toBe(
+			true,
+		);
+		expect(await gates.resolveApproval(approval.id, "rejected", "user-2")).toBe(
+			false,
+		);
 		expect(db.approvals[0]?.status).toBe("approved");
 		expect(db.approvals[0]?.resolvedByUserId).toBe("user-1");
 	});
@@ -163,7 +197,9 @@ describe("workflow approvals", () => {
 		});
 		const sweepAborted = await gates.sweepTimedOutApprovals("abort");
 		expect(sweepAborted).toEqual({ aborted: 1, autoApproved: 0 });
-		expect(db.approvals.find((row) => row.id === abort.id)?.resolutionNote).toBe("timed_out_abort");
+		expect(
+			db.approvals.find((row) => row.id === abort.id)?.resolutionNote,
+		).toBe("timed_out_abort");
 
 		const auto = await gates.requestApproval({
 			runId: "run-7",
@@ -173,8 +209,12 @@ describe("workflow approvals", () => {
 		});
 		const sweepAuto = await gates.sweepTimedOutApprovals("auto_approve");
 		expect(sweepAuto).toEqual({ aborted: 0, autoApproved: 1 });
-		expect(db.approvals.find((row) => row.id === auto.id)?.status).toBe("approved");
-		expect(db.approvals.find((row) => row.id === auto.id)?.resolutionNote).toBe("timed_out_auto_approve");
+		expect(db.approvals.find((row) => row.id === auto.id)?.status).toBe(
+			"approved",
+		);
+		expect(db.approvals.find((row) => row.id === auto.id)?.resolutionNote).toBe(
+			"timed_out_auto_approve",
+		);
 	});
 
 	it("keeps rows after cancel (forensic retention)", async () => {

@@ -447,7 +447,7 @@ async function checkAndResumeIfCompleted(
       where: {
         workflowId: targetWorkflowId,
         status: "SUCCEEDED",
-        ...(targetRunId ? { id: targetRunId } : {}),
+        ...(targetRunId ? { id: targetRunId } : undefined),
       },
       orderBy: { finishedAt: "desc" },
       select: { id: true },
@@ -1172,7 +1172,7 @@ export async function findSubscribedWorkflows(
   opts: { orgId?: string } = {}
 ): Promise<Map<string, { id: string; name: string; currentVersion: { id: number; nodes: unknown; edges: unknown } }>> {
   const wfs = await db.workflow.findMany({
-    where: { status: "PUBLISHED", disabled: false, ...(opts.orgId ? { orgId: opts.orgId } : {}) },
+    where: { status: "PUBLISHED", disabled: false, ...(opts.orgId ? { orgId: opts.orgId } : undefined) },
     select: { id: true, name: true, currentVersion: true },
   });
 

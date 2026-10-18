@@ -11,20 +11,26 @@
  *  - every attempt is journaled to `WebhookDelivery`.
  */
 
-import { Injectable, Logger } from "@nestjs/common";
-import { InjectDatabase } from "../database/database.constants";
-import { ssrfSafeFetch, type FetchLike } from "../http/ssrf-safe-fetch";
 import { randomUUID } from "node:crypto";
 import type { Db } from "@crm/db";
+import { Injectable, Logger } from "@nestjs/common";
+import { InjectDatabase } from "../database/database.constants";
+import { type FetchLike, ssrfSafeFetch } from "../http/ssrf-safe-fetch";
 import type {
 	DeliverWebhookPayload,
-	DeliveryOutcome,
 	DeliverWebhookPort,
+	DeliveryOutcome,
 } from "../workflows/deliver-webhook.workflow";
 import { WEBHOOK_PREFLIGHT_FAILURE_STATUS } from "../workflows/deliver-webhook.workflow";
-import { allowsCredentialedHeaders, parseStoredWebhookHeaders } from "./webhook-headers";
 import { renderWebhookBody } from "./webhook-body-template";
-import { signWebhookPayload, WEBHOOK_SIGNATURE_HEADER } from "./webhook-signature";
+import {
+	allowsCredentialedHeaders,
+	parseStoredWebhookHeaders,
+} from "./webhook-headers";
+import {
+	signWebhookPayload,
+	WEBHOOK_SIGNATURE_HEADER,
+} from "./webhook-signature";
 
 const HTTP_TIMEOUT_MS = 5000;
 
@@ -52,7 +58,10 @@ export class WebhookDeliveryService implements DeliverWebhookPort {
 		const secret = delivery.webhook?.secret ?? null;
 		const bodyTemplate = delivery.webhook?.bodyTemplate ?? null;
 
-		if (Object.keys(headers).length > 0 && !allowsCredentialedHeaders(payload.url)) {
+		if (
+			Object.keys(headers).length > 0 &&
+			!allowsCredentialedHeaders(payload.url)
+		) {
 			return this.markFailed(payload.deliveryId, {
 				status: "failed",
 				statusCode: WEBHOOK_PREFLIGHT_FAILURE_STATUS,
@@ -60,7 +69,9 @@ export class WebhookDeliveryService implements DeliverWebhookPort {
 			});
 		}
 
-		const rendered = bodyTemplate ? renderWebhookBody(bodyTemplate, payload.requestBody) : null;
+		const rendered = bodyTemplate
+			? renderWebhookBody(bodyTemplate, payload.requestBody)
+			: null;
 
 		if (rendered && !rendered.ok) {
 			return this.markFailed(payload.deliveryId, {
@@ -98,7 +109,10 @@ export class WebhookDeliveryService implements DeliverWebhookPort {
 		return this.markFailed(payload.deliveryId, outcome);
 	}
 
-	private async markFailed(deliveryId: string, outcome: DeliveryOutcome): Promise<DeliveryOutcome> {
+	private async markFailed(
+		deliveryId: string,
+		outcome: DeliveryOutcome,
+	): Promise<DeliveryOutcome> {
 		await this.db.webhookDelivery.update({
 			where: { id: deliveryId },
 			data: {
@@ -121,18 +135,23 @@ export class WebhookDeliveryService implements DeliverWebhookPort {
 		const timeoutId = setTimeout(() => controller.abort(), HTTP_TIMEOUT_MS);
 
 		try {
-			const signature = args.secret ? signWebhookPayload(args.secret, body) : null;
+			const signature = args.secret
+				? signWebhookPayload(args.secret, body)
+				: null;
 
-			const response = await ssrfSafeFetch(globalThis.fetch as FetchLike)(args.url, {
-				method: "POST",
-				signal: controller.signal,
-				headers: {
-					...args.headers,
-					"Content-Type": "application/json",
-					...(signature ? { [WEBHOOK_SIGNATURE_HEADER]: signature } : {}),
+			const response = await ssrfSafeFetch(globalThis.fetch as FetchLike)(
+				args.url,
+				{
+					method: "POST",
+					signal: controller.signal,
+					headers: {
+						...args.headers,
+						"Content-Type": "application/json",
+						...(signature ? { [WEBHOOK_SIGNATURE_HEADER]: signature } : {}),
+					},
+					body,
 				},
-				body,
-			});
+			);
 
 			return {
 				status: response.ok ? "success" : "failed",

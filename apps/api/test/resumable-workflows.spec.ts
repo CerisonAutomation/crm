@@ -1,24 +1,49 @@
 import { describe, expect, it } from "bun:test";
 import {
-	ResumableWorkflowService,
+	isRedelivery,
+	messageFingerprint,
+} from "../src/channels/message-cleaner";
+import { EventDispatcherService } from "../src/events/event-dispatcher.service";
+import {
 	type ResumableWorkflowDefinition,
+	ResumableWorkflowService,
 } from "../src/workflows/resumable-workflow.service";
 import { WorkflowGatesService } from "../src/workflows/workflow-gates.service";
 import { WorkflowLedgerService } from "../src/workflows/workflow-ledger.service";
-import { EventDispatcherService } from "../src/events/event-dispatcher.service";
-import { isRedelivery, messageFingerprint } from "../src/channels/message-cleaner";
 
 type Row = Record<string, unknown> & { id: string };
 
 function matchesWhere(row: Row, where: Record<string, unknown>): boolean {
 	for (const [key, condition] of Object.entries(where)) {
-		if (condition !== null && typeof condition === "object" && !Array.isArray(condition)) {
-			const spec = condition as { in?: unknown[]; lte?: unknown; gte?: unknown; not?: unknown };
+		if (
+			condition !== null &&
+			typeof condition === "object" &&
+			!Array.isArray(condition)
+		) {
+			const spec = condition as {
+				in?: unknown[];
+				lte?: unknown;
+				gte?: unknown;
+				not?: unknown;
+			};
 			if (spec.in && !spec.in.includes(row[key])) return false;
 			if (spec.not !== undefined && row[key] === spec.not) return false;
-			if (spec.lte !== undefined && (row[key] as Date).getTime() > (spec.lte as Date).getTime()) return false;
-			if (spec.gte !== undefined && (row[key] as Date).getTime() < (spec.gte as Date).getTime()) return false;
-			if (spec.in === undefined && spec.lte === undefined && spec.gte === undefined && spec.not === undefined) {
+			if (
+				spec.lte !== undefined &&
+				(row[key] as Date).getTime() > (spec.lte as Date).getTime()
+			)
+				return false;
+			if (
+				spec.gte !== undefined &&
+				(row[key] as Date).getTime() < (spec.gte as Date).getTime()
+			)
+				return false;
+			if (
+				spec.in === undefined &&
+				spec.lte === undefined &&
+				spec.gte === undefined &&
+				spec.not === undefined
+			) {
 				// nested object equality (e.g. compound unique keys)
 				for (const [nestedKey, nestedValue] of Object.entries(spec)) {
 					if (row[key]?.[nestedKey as never] !== nestedValue) return false;
@@ -40,13 +65,26 @@ class InMemoryWorkflowDb {
 
 	workflowRun = {
 		create: async ({ data }: { data: Row }) => {
-			const row = { createdAt: new Date(), updatedAt: new Date(), attemptCount: 0, maxAttempts: 3, ...data, id: data.id ?? `run-${++this.seq}` };
+			const row = {
+				createdAt: new Date(),
+				updatedAt: new Date(),
+				attemptCount: 0,
+				maxAttempts: 3,
+				...data,
+				id: data.id ?? `run-${++this.seq}`,
+			};
 			this.runs.push(row);
 			return row;
 		},
 		findUnique: async ({ where }: { where: { id: string } }) =>
 			this.runs.find((row) => row.id === where.id) ?? null,
-		update: async ({ where, data }: { where: { id: string }; data: Record<string, unknown> }) => {
+		update: async ({
+			where,
+			data,
+		}: {
+			where: { id: string };
+			data: Record<string, unknown>;
+		}) => {
 			const row = this.runs.find((entry) => entry.id === where.id);
 			if (!row) throw new Error("unknown run");
 			Object.assign(row, data);
@@ -56,12 +94,17 @@ class InMemoryWorkflowDb {
 
 	workflowEventLog = {
 		create: async ({ data }: { data: Row }) => {
-			const row = { createdAt: new Date(), ...data, id: data.id ?? `evt-${++this.seq}` };
+			const row = {
+				createdAt: new Date(),
+				...data,
+				id: data.id ?? `evt-${++this.seq}`,
+			};
 			this.events.push(row);
 			return row;
 		},
 		findFirst: async ({ where }: { where: Record<string, unknown> }) =>
-			[...this.events].reverse().find((row) => matchesWhere(row, where)) ?? null,
+			[...this.events].reverse().find((row) => matchesWhere(row, where)) ??
+			null,
 		findMany: async ({ where }: { where: Record<string, unknown> }) =>
 			this.events.filter((row) => matchesWhere(row, where)),
 	};
@@ -76,7 +119,13 @@ class InMemoryWorkflowDb {
 			this.waits.filter((row) => matchesWhere(row, where)),
 		findUnique: async ({ where }: { where: { id: string } }) =>
 			this.waits.find((row) => row.id === where.id) ?? null,
-		updateMany: async ({ where, data }: { where: Record<string, unknown>; data: Record<string, unknown> }) => {
+		updateMany: async ({
+			where,
+			data,
+		}: {
+			where: Record<string, unknown>;
+			data: Record<string, unknown>;
+		}) => {
 			const hits = this.waits.filter((row) => matchesWhere(row, where));
 			for (const row of hits) Object.assign(row, data);
 			return { count: hits.length };
@@ -93,7 +142,13 @@ class InMemoryWorkflowDb {
 			this.approvals.filter((row) => matchesWhere(row, where)),
 		findUnique: async ({ where }: { where: { id: string } }) =>
 			this.approvals.find((row) => row.id === where.id) ?? null,
-		updateMany: async ({ where, data }: { where: Record<string, unknown>; data: Record<string, unknown> }) => {
+		updateMany: async ({
+			where,
+			data,
+		}: {
+			where: Record<string, unknown>;
+			data: Record<string, unknown>;
+		}) => {
 			const hits = this.approvals.filter((row) => matchesWhere(row, where));
 			for (const row of hits) Object.assign(row, data);
 			return { count: hits.length };
@@ -134,7 +189,11 @@ const counter: ResumableWorkflowDefinition<CountState> = {
 	}),
 	resume: async (state, trigger) => {
 		const next = state.count + 1;
-		if (next >= 3) return { kind: "done", result: { final: next, saw: trigger.payload.note ?? null } };
+		if (next >= 3)
+			return {
+				kind: "done",
+				result: { final: next, saw: trigger.payload.note ?? null },
+			};
 		return {
 			kind: "wait",
 			state: { count: next },
@@ -226,10 +285,16 @@ describe("resumable workflows (durable pause/resume)", () => {
 		resumable.register(counter);
 		const waiting = await resumable.runToYield("counter", { n: 0 });
 		if (waiting.status !== "waiting") throw new Error("unreachable");
-		await resumable.resume(waiting.runId, { kind: "event", eventName: "counter.tick", payload: {} });
+		await resumable.resume(waiting.runId, {
+			kind: "event",
+			eventName: "counter.tick",
+			payload: {},
+		});
 		const kinds = db.events.map((row) => row.kind);
 		expect(kinds).toContain("resumable.yielded");
-		expect(kinds.filter((kind) => kind === "resumable.yielded").length).toBeGreaterThanOrEqual(2);
+		expect(
+			kinds.filter((kind) => kind === "resumable.yielded").length,
+		).toBeGreaterThanOrEqual(2);
 	});
 });
 
@@ -244,20 +309,33 @@ describe("message cleaner (inbound redelivery dedupe)", () => {
 
 	it("fingerprints normalize case and whitespace", () => {
 		const a = messageFingerprint(base);
-		const b = messageFingerprint({ ...base, senderHandle: " user-9 ", body: "Hello " });
+		const b = messageFingerprint({
+			...base,
+			senderHandle: " user-9 ",
+			body: "Hello ",
+		});
 		expect(a).toBe(b);
 	});
 
 	it("flags redeliveries inside the window and not outside", () => {
 		const fingerprint = messageFingerprint(base);
 		expect(
-			isRedelivery(base, { fingerprint, occurredAt: new Date(1_760_000_030_000) }),
+			isRedelivery(base, {
+				fingerprint,
+				occurredAt: new Date(1_760_000_030_000),
+			}),
 		).toBe(true);
 		expect(
-			isRedelivery(base, { fingerprint, occurredAt: new Date(1_760_000_120_000) }),
+			isRedelivery(base, {
+				fingerprint,
+				occurredAt: new Date(1_760_000_120_000),
+			}),
 		).toBe(false);
 		expect(
-			isRedelivery({ ...base, body: "Different" }, { fingerprint, occurredAt: base.occurredAt }),
+			isRedelivery(
+				{ ...base, body: "Different" },
+				{ fingerprint, occurredAt: base.occurredAt },
+			),
 		).toBe(false);
 	});
 });

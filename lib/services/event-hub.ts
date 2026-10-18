@@ -940,7 +940,7 @@ export async function emitCaseEvent(
                 workflowsMatched,
                 runsDispatched,
                 correlationId,
-                ...(fanoutNote ? { note: fanoutNote } : {}),
+                ...(fanoutNote ? { note: fanoutNote } : undefined),
               },
             }),
           },

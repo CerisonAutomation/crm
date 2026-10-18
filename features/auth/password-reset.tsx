@@ -104,7 +104,7 @@ export function ResetPassword() {
 
   // Read the URL token once on mount (client-only surface — see page.tsx gate).
   const [urlToken] = useState<string | null>(() =>
-    typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("token") : null,
+    globalThis.window !== undefined ? new URLSearchParams(window.location.search).get("token") : null,
   );
   const token = urlToken ?? pendingResetToken;
 

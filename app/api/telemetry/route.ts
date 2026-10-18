@@ -176,7 +176,7 @@ export async function GET(req: NextRequest) {
 
     const take = Math.min(Number(url.searchParams.get("take") ?? 100), 500);
     const kind = url.searchParams.get("kind") ?? undefined;
-    const where = { orgId: ctx.orgId, ...(kind ? { kind } : {}) };
+    const where = { orgId: ctx.orgId, ...(kind ? { kind } : undefined) };
     const [events, byKind] = await Promise.all([
       db.telemetryEvent.findMany({ where, orderBy: { createdAt: "desc" }, take }),
       db.telemetryEvent.groupBy({ by: ["kind"], where: { orgId: ctx.orgId }, _count: true }),

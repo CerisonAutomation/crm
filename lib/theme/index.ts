@@ -195,7 +195,7 @@ export function brandTokenDeclarations(brand: Pick<CanonBrand, "tokens">): Array
  * test environment) is swallowed: a theme must never break a render.
  */
 export function applyBrandTokens(brand: Pick<CanonBrand, "tokens"> = CANON_BRAND): void {
-  if (typeof document === "undefined") return;
+  if (globalThis.document === undefined) return;
   const root = document.documentElement;
   try {
     for (const [name, value] of brandTokenDeclarations(brand)) {

@@ -25,8 +25,7 @@ export async function GET(req: NextRequest) {
                 { status: { contains: q, mode: "insensitive" } },
                 { carrier: { contains: q, mode: "insensitive" } },
               ],
-            }
-          : {}),
+            } : undefined),
       },
       orderBy: { createdAt: "desc" },
       take: 201,

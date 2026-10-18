@@ -76,7 +76,7 @@ const SESSION_KEY = "cl.telemetry.session";
 
 /** Stable per-tab id used to group client telemetry. Never throws. */
 export function ensureSessionId(): string {
-  if (typeof window === "undefined") return "server";
+  if (globalThis.window === undefined) return "server";
   try {
     const existing = window.sessionStorage.getItem(SESSION_KEY);
     if (existing) return existing;
@@ -97,7 +97,7 @@ export function ensureSessionId(): string {
  * and never retries (the ingest endpoint is a silent 204 by design).
  */
 export function reportClientError(err: unknown, context: ErrorContext = {}): void {
-  if (typeof window === "undefined") return;
+  if (globalThis.window === undefined) return;
   try {
     const d = describeError(err);
     const name = `${d.name}: ${d.message}`.slice(0, 80);

@@ -381,7 +381,7 @@ export function parseVoiceCommand(transcript: string): ParsedCommand {
         {
           kind: "navigate",
           view: rule.view,
-          ...(rule.sub ? { sub: rule.sub } : {}),
+          ...(rule.sub ? { sub: rule.sub } : undefined),
           label: `Open ${rule.label}`,
         },
         0.8
@@ -489,7 +489,7 @@ export function intentFromKeyword(
         ? {
             kind: "navigate",
             view: rule.view,
-            ...(rule.sub ? { sub: rule.sub } : {}),
+            ...(rule.sub ? { sub: rule.sub } : undefined),
             label: `Open ${rule.label}`,
           }
         : null;

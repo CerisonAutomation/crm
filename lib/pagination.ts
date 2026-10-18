@@ -51,7 +51,7 @@ export function parseListParams(
   }
 
   const cursor = url.searchParams.get("cursor");
-  return { limit, page, offset: (page - 1) * limit, ...(cursor ? { cursor } : {}) };
+  return { limit, page, offset: (page - 1) * limit, ...(cursor ? { cursor } : undefined) };
 }
 
 /** Encode a sort key (record id) as an opaque cursor. */

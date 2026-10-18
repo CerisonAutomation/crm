@@ -7,20 +7,20 @@
  * applies to workflow-waits.
  */
 
-import { Injectable } from "@nestjs/common";
 import { randomUUID } from "node:crypto";
 import type { Db } from "@crm/db";
+import { Injectable } from "@nestjs/common";
 import { InjectDatabase } from "../database/database.constants";
-import {
-	bookingsConflict,
-	BookingRuleError,
-	computeDaySlots,
-	validateBookingRules,
-	type AvailabilityRules,
-	type BookingSlot,
-} from "./booking-availability";
 import { isValidTimeZone } from "../routines/cron-expression";
 import { WorkflowNonRetryableError } from "../workflows/workflow-errors";
+import {
+	type AvailabilityRules,
+	BookingRuleError,
+	type BookingSlot,
+	bookingsConflict,
+	computeDaySlots,
+	validateBookingRules,
+} from "./booking-availability";
 
 export type AppointmentTypeInput = {
 	slug: string;
@@ -59,30 +59,48 @@ export class BookingService {
 		const problems: string[] = [];
 		if (input.slug.trim().length === 0) problems.push("slug is required");
 		if (!/^[a-z0-9-]{1,64}$/.test(input.slug.trim())) {
-			problems.push("slug must be lowercase letters, digits and dashes (max 64 chars)");
+			problems.push(
+				"slug must be lowercase letters, digits and dashes (max 64 chars)",
+			);
 		}
 		if (input.title.trim().length === 0) problems.push("title is required");
-		if (!isValidTimeZone(input.timezone)) problems.push(`unknown timezone ${input.timezone}`);
+		if (!isValidTimeZone(input.timezone))
+			problems.push(`unknown timezone ${input.timezone}`);
 		if (!input.availability || !Array.isArray(input.availability.windows)) {
 			problems.push("availability.windows must be an array");
 		} else {
 			try {
-				validateBookingRules(input.durationMinutes, input.bufferMinutes, input.availability);
+				validateBookingRules(
+					input.durationMinutes,
+					input.bufferMinutes,
+					input.availability,
+				);
 			} catch (error) {
-				problems.push(error instanceof BookingRuleError ? error.message : "invalid availability rules");
+				problems.push(
+					error instanceof BookingRuleError
+						? error.message
+						: "invalid availability rules",
+				);
 			}
 		}
 		return problems;
 	}
 
-	async createAppointmentType(ownerUserId: string, input: AppointmentTypeInput) {
+	async createAppointmentType(
+		ownerUserId: string,
+		input: AppointmentTypeInput,
+	) {
 		const problems = BookingService.validateAppointmentTypeInput(input);
-		if (problems.length > 0) throw new WorkflowNonRetryableError(problems.join("; "));
+		if (problems.length > 0)
+			throw new WorkflowNonRetryableError(problems.join("; "));
 
 		const existing = await this.db.appointmentType.findUnique({
 			where: { ownerUserId_slug: { ownerUserId, slug: input.slug.trim() } },
 		});
-		if (existing) throw new WorkflowNonRetryableError(`slug ${input.slug} already exists for this owner`);
+		if (existing)
+			throw new WorkflowNonRetryableError(
+				`slug ${input.slug} already exists for this owner`,
+			);
 
 		return this.db.appointmentType.create({
 			data: {
@@ -116,8 +134,13 @@ export class BookingService {
 		});
 	}
 
-	async removeAppointmentType(ownerUserId: string, id: string): Promise<boolean> {
-		const found = await this.db.appointmentType.findFirst({ where: { id, ownerUserId } });
+	async removeAppointmentType(
+		ownerUserId: string,
+		id: string,
+	): Promise<boolean> {
+		const found = await this.db.appointmentType.findFirst({
+			where: { id, ownerUserId },
+		});
 		if (!found) return false;
 		await this.db.appointmentType.delete({ where: { id } });
 		return true;
@@ -127,11 +150,19 @@ export class BookingService {
 	 * Free slots for a local day of an appointment type. Bookings of the same
 	 * owner inside the day window are loaded once and excluded with buffers.
 	 */
-	async slotsForDay(ownerUserId: string, appointmentTypeId: string, day: Date, now = new Date()): Promise<BookingSlot[]> {
+	async slotsForDay(
+		ownerUserId: string,
+		appointmentTypeId: string,
+		day: Date,
+		now = new Date(),
+	): Promise<BookingSlot[]> {
 		const type = await this.db.appointmentType.findFirst({
 			where: { id: appointmentTypeId, ownerUserId, enabled: true },
 		});
-		if (!type) throw new WorkflowNonRetryableError(`No appointment type ${appointmentTypeId}`);
+		if (!type)
+			throw new WorkflowNonRetryableError(
+				`No appointment type ${appointmentTypeId}`,
+			);
 
 		const dayStart = new Date(day.getTime() - DAY_MS);
 		const dayEnd = new Date(day.getTime() + 2 * DAY_MS);
@@ -156,7 +187,9 @@ export class BookingService {
 			});
 		} catch (error) {
 			throw new WorkflowNonRetryableError(
-				error instanceof BookingRuleError ? error.message : "availability rules are invalid",
+				error instanceof BookingRuleError
+					? error.message
+					: "availability rules are invalid",
 			);
 		}
 	}
@@ -168,11 +201,15 @@ export class BookingService {
 				})
 			: null;
 		if (input.appointmentTypeId && !type) {
-			throw new WorkflowNonRetryableError(`No appointment type ${input.appointmentTypeId}`);
+			throw new WorkflowNonRetryableError(
+				`No appointment type ${input.appointmentTypeId}`,
+			);
 		}
 
 		const startsAt = input.startsAt;
-		const endsAt = new Date(startsAt.getTime() + (type?.durationMinutes ?? 30) * 60_000);
+		const endsAt = new Date(
+			startsAt.getTime() + (type?.durationMinutes ?? 30) * 60_000,
+		);
 		if (startsAt.getTime() <= Date.now() - 60_000) {
 			throw new WorkflowNonRetryableError("Cannot book a slot in the past");
 		}
@@ -181,14 +218,23 @@ export class BookingService {
 			where: {
 				ownerUserId,
 				status: "scheduled",
-				startsAt: { gte: new Date(startsAt.getTime() - DAY_MS), lt: new Date(startsAt.getTime() + DAY_MS) },
+				startsAt: {
+					gte: new Date(startsAt.getTime() - DAY_MS),
+					lt: new Date(startsAt.getTime() + DAY_MS),
+				},
 			},
 			select: { startsAt: true, endsAt: true },
 		});
 		const conflict = nearby.some((busy) =>
-			bookingsConflict({ startsAt, endsAt }, { startsAt: busy.startsAt, endsAt: busy.endsAt }),
+			bookingsConflict(
+				{ startsAt, endsAt },
+				{ startsAt: busy.startsAt, endsAt: busy.endsAt },
+			),
 		);
-		if (conflict) throw new WorkflowNonRetryableError("The requested time overlaps an existing booking");
+		if (conflict)
+			throw new WorkflowNonRetryableError(
+				"The requested time overlaps an existing booking",
+			);
 
 		return this.db.booking.create({
 			data: {
@@ -211,7 +257,11 @@ export class BookingService {
 	}
 
 	/** CAS cancel: returns false when the booking was not `scheduled` anymore. */
-	async cancelBooking(ownerUserId: string, id: string, reason?: string): Promise<boolean> {
+	async cancelBooking(
+		ownerUserId: string,
+		id: string,
+		reason?: string,
+	): Promise<boolean> {
 		const result = await this.db.booking.updateMany({
 			where: { id, ownerUserId, status: "scheduled" },
 			data: {

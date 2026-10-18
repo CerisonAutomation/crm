@@ -17,9 +17,14 @@ import {
 	Req,
 	Res,
 } from "@nestjs/common";
-import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from "@nestjs/swagger";
+import {
+	ApiBearerAuth,
+	ApiOkResponse,
+	ApiOperation,
+	ApiTags,
+} from "@nestjs/swagger";
 import type { Request, Response } from "express";
-import { McpServerService, type JsonRpcRequest } from "./mcp-server.service";
+import { type JsonRpcRequest, McpServerService } from "./mcp-server.service";
 
 export const MCP_SESSION_HEADER = "mcp-session-id";
 export const MCP_AUTH_HEADER = "authorization";
@@ -47,22 +52,32 @@ export class McpController {
 
 	@Post()
 	@HttpCode(200)
-	@ApiOperation({ summary: "MCP Streamable HTTP endpoint (initialize, tools/list, tools/call, ping)" })
+	@ApiOperation({
+		summary:
+			"MCP Streamable HTTP endpoint (initialize, tools/list, tools/call, ping)",
+	})
 	@ApiBearerAuth()
 	@ApiOkResponse({ description: "JSON-RPC 2.0 response" })
-	async handle(@Body() body: unknown, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
+	async handle(
+		@Body() body: unknown,
+		@Req() req: Request,
+		@Res({ passthrough: true }) res: Response,
+	) {
 		const expectedToken = mcpTokenFromEnv();
 		if (!expectedToken) {
-			this.logger.error("MCP_AUTH_TOKEN is not configured; refusing MCP traffic");
+			this.logger.error(
+				"MCP_AUTH_TOKEN is not configured; refusing MCP traffic",
+			);
 			throw new InternalServerErrorException(
 				"MCP endpoint is disabled until MCP_AUTH_TOKEN (min 16 chars) is configured",
 			);
 		}
 
 		const header = req.headers[MCP_AUTH_HEADER];
-		const presented = typeof header === "string" && header.toLowerCase().startsWith("bearer ")
-			? header.slice("bearer ".length)
-			: "";
+		const presented =
+			typeof header === "string" && header.toLowerCase().startsWith("bearer ")
+				? header.slice("bearer ".length)
+				: "";
 		if (!presented || !timingSafeStringEqual(presented, expectedToken)) {
 			throw new HttpException("Invalid MCP bearer token", 401);
 		}
@@ -72,7 +87,8 @@ export class McpController {
 		}
 
 		const inboundSession = req.headers[MCP_SESSION_HEADER];
-		const sessionId = typeof inboundSession === "string" ? inboundSession : undefined;
+		const sessionId =
+			typeof inboundSession === "string" ? inboundSession : undefined;
 
 		const { response, sessionId: nextSession } = await this.server.handle(
 			body as JsonRpcRequest,

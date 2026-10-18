@@ -30,11 +30,11 @@ let timer: ReturnType<typeof setTimeout> | null = null;
 let wired = false;
 
 function flush(useBeacon = false): void {
-  if (typeof window === "undefined" || queue.length === 0) return;
+  if (globalThis.window === undefined || queue.length === 0) return;
   const events = queue.splice(0, MAX_QUEUE).map((e) => ({ ...e, sessionId: ensureSessionId() }));
   const body = JSON.stringify({ events });
   try {
-    if (useBeacon && typeof navigator !== "undefined" && navigator.sendBeacon) {
+    if (useBeacon && globalThis.navigator !== undefined && navigator.sendBeacon) {
       navigator.sendBeacon("/api/telemetry", new Blob([body], { type: "application/json" }));
       return;
     }
@@ -50,7 +50,7 @@ function flush(useBeacon = false): void {
 }
 
 function wire(): void {
-  if (wired || typeof window === "undefined") return;
+  if (wired || globalThis.window === undefined) return;
   wired = true;
   window.addEventListener("pagehide", () => flush(true));
   document.addEventListener("visibilitychange", () => {
@@ -59,7 +59,7 @@ function wire(): void {
 }
 
 function enqueue(e: TrackedEvent): void {
-  if (typeof window === "undefined") return;
+  if (globalThis.window === undefined) return;
   wire();
   queue.push(e);
   if (queue.length >= MAX_QUEUE) {
@@ -74,7 +74,7 @@ function enqueue(e: TrackedEvent): void {
   }
 }
 
-const pagePath = () => (typeof window === "undefined" ? undefined : window.location.pathname);
+const pagePath = () => (globalThis.window === undefined ? undefined : window.location.pathname);
 
 /** A navigation / view change. */
 export function trackView(view: string, opts?: { role?: string; locale?: string }): void {

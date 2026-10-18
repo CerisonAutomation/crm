@@ -43,9 +43,9 @@ export async function getVoiceNotes(orgId: string, filters?: {
   return db.voiceNote.findMany({
     where: {
       orgId,
-      ...(filters?.userId ? { userId: filters.userId } : {}),
-      ...(filters?.caseId ? { caseId: filters.caseId } : {}),
-      ...(filters?.transcriptStatus ? { transcriptStatus: filters.transcriptStatus } : {}),
+      ...(filters?.userId ? { userId: filters.userId } : undefined),
+      ...(filters?.caseId ? { caseId: filters.caseId } : undefined),
+      ...(filters?.transcriptStatus ? { transcriptStatus: filters.transcriptStatus } : undefined),
     },
     orderBy: { createdAt: "desc" },
   });

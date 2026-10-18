@@ -8,7 +8,16 @@ class InMemoryClaimsDb {
 	private seq = 0;
 
 	sendClaim = {
-		create: async ({ data }: { data: Row & { channel: string; kind: string; stepNumber: number; idempotencyKey: string } }) => {
+		create: async ({
+			data,
+		}: {
+			data: Row & {
+				channel: string;
+				kind: string;
+				stepNumber: number;
+				idempotencyKey: string;
+			};
+		}) => {
 			const dup = this.rows.find(
 				(row) =>
 					row.channel === data.channel &&
@@ -17,15 +26,33 @@ class InMemoryClaimsDb {
 					row.idempotencyKey === data.idempotencyKey,
 			);
 			if (dup) {
-				const error = new Error("Unique constraint failed") as Error & { code: string };
+				const error = new Error("Unique constraint failed") as Error & {
+					code: string;
+				};
 				error.code = "P2002";
 				throw error;
 			}
-			const row = { ...data, id: data.id ?? `claim-${++this.seq}`, claimedAt: new Date() };
+			const row = {
+				...data,
+				id: data.id ?? `claim-${++this.seq}`,
+				claimedAt: new Date(),
+			};
 			this.rows.push(row);
 			return row;
 		},
-		findUnique: async ({ where }: { where: Record<string, { channel: string; kind: string; stepNumber: number; idempotencyKey: string }> }) => {
+		findUnique: async ({
+			where,
+		}: {
+			where: Record<
+				string,
+				{
+					channel: string;
+					kind: string;
+					stepNumber: number;
+					idempotencyKey: string;
+				}
+			>;
+		}) => {
 			const key = where.channel_kind_stepNumber_idempotencyKey as {
 				channel: string;
 				kind: string;
@@ -42,7 +69,13 @@ class InMemoryClaimsDb {
 				) ?? null
 			);
 		},
-		updateMany: async ({ where, data }: { where: Record<string, unknown>; data: Record<string, unknown> }) => {
+		updateMany: async ({
+			where,
+			data,
+		}: {
+			where: Record<string, unknown>;
+			data: Record<string, unknown>;
+		}) => {
 			const hits = this.rows.filter((row) =>
 				Object.entries(where).every(([key, value]) => row[key] === value),
 			);
@@ -50,7 +83,9 @@ class InMemoryClaimsDb {
 			return { count: hits.length };
 		},
 		findMany: async ({ where }: { where: Record<string, unknown> }) =>
-			this.rows.filter((row) => Object.entries(where).every(([key, value]) => row[key] === value)),
+			this.rows.filter((row) =>
+				Object.entries(where).every(([key, value]) => row[key] === value),
+			),
 	};
 }
 

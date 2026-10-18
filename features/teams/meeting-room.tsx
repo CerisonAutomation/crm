@@ -58,7 +58,7 @@ import {
 type AudioContextCtor = typeof AudioContext;
 
 function createAudioContext(): AudioContext | null {
-  if (typeof window === "undefined") return null;
+  if (globalThis.window === undefined) return null;
   const w = window as unknown as {
     AudioContext?: AudioContextCtor;
     webkitAudioContext?: AudioContextCtor;

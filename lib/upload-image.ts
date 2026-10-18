@@ -36,7 +36,7 @@ async function readAsBase64(file: Blob): Promise<string> {
 }
 
 async function downscaleToJpeg(file: File): Promise<Blob | null> {
-  if (typeof document === "undefined") return null;
+  if (globalThis.document === undefined) return null;
   const imageCtor = (window as unknown as { Image?: typeof Image }).Image;
   if (!imageCtor) return null;
   const url = URL.createObjectURL(file);

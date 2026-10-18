@@ -79,7 +79,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
           currentRevisionId: rev.id,
           // A live page rolls back in public too; a draft page only moves the
           // working pointer (its next publish will promote it).
-          ...(published ? { publishedRevisionId: rev.id, version: rev.version } : {}),
+          ...(published ? { publishedRevisionId: rev.id, version: rev.version } : undefined),
         },
       });
       await audit({

@@ -2064,6 +2064,9 @@ export const EN = {
   "consultations.placeholderDescription":
     "The consultations endpoint is not wired yet — requests are handled through the bookings queue.",
   "consultations.placeholderAction": "Open bookings",
+  "consultations.detailTitle": "Consultation details",
+  "consultations.column.lead": "Lead",
+  "consultations.column.scheduled": "Scheduled",
   "consultations.status.requested": "Requested",
   "consultations.status.confirmed": "Confirmed",
   "consultations.status.completed": "Completed",
@@ -2108,6 +2111,10 @@ export const EN = {
   "reminders.placeholderDescription":
     "The reminder queue endpoint is not wired yet.",
   "reminders.placeholderAction": "Open queue",
+  "reminders.sweep": "Run sweep",
+  "reminders.detailTitle": "Reminder details",
+  "reminders.detail.kind": "Kind",
+  "reminders.column.due": "Due",
   "reminders.kind.requestDue": "Request due",
   "reminders.kind.docExpiry": "Document expiry",
   "reminders.kind.caseStale": "Stale case",

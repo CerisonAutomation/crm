@@ -40,8 +40,8 @@ export async function getEligibilitySignals(filters: {
 }) {
   return db.eligibilitySignal.findMany({
     where: {
-      ...(filters.programmeId ? { programmeId: filters.programmeId } : {}),
-      ...(filters.versionId ? { versionId: filters.versionId } : {}),
+      ...(filters.programmeId ? { programmeId: filters.programmeId } : undefined),
+      ...(filters.versionId ? { versionId: filters.versionId } : undefined),
     },
     orderBy: { key: "asc" },
   });

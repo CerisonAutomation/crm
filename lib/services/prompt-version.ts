@@ -39,8 +39,8 @@ export async function getPromptVersions(orgId: string, filters?: {
   return db.promptVersion.findMany({
     where: {
       orgId,
-      ...(filters?.key ? { key: filters.key } : {}),
-      ...(filters?.status ? { status: filters.status } : {}),
+      ...(filters?.key ? { key: filters.key } : undefined),
+      ...(filters?.status ? { status: filters.status } : undefined),
     },
     orderBy: [{ key: "asc" }, { version: "desc" }],
   });

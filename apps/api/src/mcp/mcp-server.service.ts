@@ -11,11 +11,11 @@
  * requires the `Mcp-Session-Id` header value returned by `initialize`.
  */
 
-import { Injectable } from "@nestjs/common";
 import { randomUUID } from "node:crypto";
+import { Injectable } from "@nestjs/common";
 import { z } from "zod";
-import { McpToolsService } from "./mcp-tools.service";
 import { executeMcpTool, type McpTool } from "./mcp.types";
+import { McpToolsService } from "./mcp-tools.service";
 
 export const MCP_PROTOCOL_VERSION = "2025-06-18";
 export const MCP_SERVER_INFO = {
@@ -66,12 +66,20 @@ function toolDescriptor(tool: McpTool): Record<string, unknown> {
 		name: tool.name,
 		title: tool.title,
 		description: tool.description,
-		inputSchema: z.toJSONSchema(tool.inputSchema, { io: "input" }) as Record<string, unknown>,
+		inputSchema: z.toJSONSchema(tool.inputSchema, { io: "input" }) as Record<
+			string,
+			unknown
+		>,
 		...(tool.annotations ? { annotations: tool.annotations } : {}),
 	};
 }
 
-function errorResponse(id: string | number | null, code: number, message: string, data?: unknown): JsonRpcResponse {
+function errorResponse(
+	id: string | number | null,
+	code: number,
+	message: string,
+	data?: unknown,
+): JsonRpcResponse {
 	return {
 		jsonrpc: "2.0",
 		id,
@@ -90,13 +98,20 @@ export class McpServerService {
 	async handle(
 		message: JsonRpcRequest,
 		sessionId?: string,
-	): Promise<{ response: JsonRpcResponse | null; sessionId: string | undefined }> {
+	): Promise<{
+		response: JsonRpcResponse | null;
+		sessionId: string | undefined;
+	}> {
 		const id = message.id ?? null;
 		const isNotification = message.id === undefined;
 
 		if (message.jsonrpc !== "2.0" || typeof message.method !== "string") {
 			return {
-				response: errorResponse(id, JSON_RPC_INVALID_REQUEST, "Invalid JSON-RPC 2.0 request"),
+				response: errorResponse(
+					id,
+					JSON_RPC_INVALID_REQUEST,
+					"Invalid JSON-RPC 2.0 request",
+				),
 				sessionId,
 			};
 		}
@@ -119,12 +134,14 @@ export class McpServerService {
 			}
 
 			case "ping": {
-				if (!sessionExists(sessionId)) return this.sessionRequired(id, sessionId);
+				if (!sessionExists(sessionId))
+					return this.sessionRequired(id, sessionId);
 				return { response: { jsonrpc: "2.0", id, result: {} }, sessionId };
 			}
 
 			case "tools/list": {
-				if (!sessionExists(sessionId)) return this.sessionRequired(id, sessionId);
+				if (!sessionExists(sessionId))
+					return this.sessionRequired(id, sessionId);
 				return {
 					response: {
 						jsonrpc: "2.0",
@@ -136,7 +153,8 @@ export class McpServerService {
 			}
 
 			case "tools/call": {
-				if (!sessionExists(sessionId)) return this.sessionRequired(id, sessionId);
+				if (!sessionExists(sessionId))
+					return this.sessionRequired(id, sessionId);
 				return this.handleToolCall(message, id, sessionId);
 			}
 
@@ -180,15 +198,25 @@ export class McpServerService {
 
 		if (typeof name !== "string") {
 			return {
-				response: errorResponse(id, JSON_RPC_INVALID_PARAMS, "tools/call requires params.name"),
+				response: errorResponse(
+					id,
+					JSON_RPC_INVALID_PARAMS,
+					"tools/call requires params.name",
+				),
 				sessionId,
 			};
 		}
 
-		const tool = this.tools.catalog().find((candidate) => candidate.name === name);
+		const tool = this.tools
+			.catalog()
+			.find((candidate) => candidate.name === name);
 		if (!tool) {
 			return {
-				response: errorResponse(id, JSON_RPC_INVALID_PARAMS, `Unknown tool ${name}`),
+				response: errorResponse(
+					id,
+					JSON_RPC_INVALID_PARAMS,
+					`Unknown tool ${name}`,
+				),
 				sessionId,
 			};
 		}

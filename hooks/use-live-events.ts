@@ -32,7 +32,7 @@ export function useLiveEvents(handlers: Record<string, (data: unknown) => void>,
 
   useEffect(() => {
     if (!enabled) return;
-    if (typeof window === "undefined" || typeof EventSource === "undefined") return;
+    if (globalThis.window === undefined || typeof EventSource === "undefined") return;
 
     let source: EventSource | null = null;
     try {

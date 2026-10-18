@@ -11,11 +11,20 @@ import { z } from "zod";
 
 export const VALIDATION_ERROR_PREFIX = "Validation error:";
 
-export type InteractorFailureKind = "validation" | "authentication" | "authorization" | "notFound" | "conflict";
+export type InteractorFailureKind =
+	| "validation"
+	| "authentication"
+	| "authorization"
+	| "notFound"
+	| "conflict";
 
 export type SerializedInteractorFailure = {
 	kind: InteractorFailureKind;
-	issues: Array<{ code: string; path: Array<string | number>; message: string }>;
+	issues: Array<{
+		code: string;
+		path: Array<string | number>;
+		message: string;
+	}>;
 };
 
 export type McpToolFailureResult = {
@@ -47,7 +56,9 @@ export type McpTool = {
 	/** MCP tool annotations, e.g. { readOnlyHint: true }. */
 	annotations?: Record<string, boolean>;
 	inputSchema: z.ZodType;
-	execute: (input: Record<string, unknown>) => Promise<McpToolResult> | McpToolResult;
+	execute: (
+		input: Record<string, unknown>,
+	) => Promise<McpToolResult> | McpToolResult;
 };
 
 export function mcpToolResultText(result: McpToolResult): string {
@@ -58,7 +69,10 @@ export function validationError(error: z.ZodError): string {
 	return `${VALIDATION_ERROR_PREFIX} ${z.prettifyError(error)}`;
 }
 
-export function serializeZodFailure(error: z.ZodError, kind: InteractorFailureKind): SerializedInteractorFailure {
+export function serializeZodFailure(
+	error: z.ZodError,
+	kind: InteractorFailureKind,
+): SerializedInteractorFailure {
 	return {
 		kind,
 		issues: error.issues.map((issue) => ({
@@ -112,7 +126,11 @@ export async function executeMcpTool(
 		if ("failure" in result) {
 			return { ok: false, result: result.text, failure: result.failure };
 		}
-		return { ok: true, result: result.text, structuredContent: result.structuredContent };
+		return {
+			ok: true,
+			result: result.text,
+			structuredContent: result.structuredContent,
+		};
 	} catch (error) {
 		const message = error instanceof Error ? error.message : String(error);
 		return {

@@ -32,7 +32,7 @@ const dbStore: SealStore = {
     const rows = await db.extractedField.findMany({
       where: {
         fieldKey: { in: [...ENCRYPTED_FIELD_KEYS] },
-        ...(cursor ? { id: { gt: cursor } } : {}),
+        ...(cursor ? { id: { gt: cursor } } : undefined),
       },
       select: {
         id: true,

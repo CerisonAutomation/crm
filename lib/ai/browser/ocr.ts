@@ -80,8 +80,8 @@ export async function ocrImage(
       },
     },
     {
-      ...(opts.whitelist ? { tessedit_char_whitelist: opts.whitelist } : {}),
-      ...(opts.psm ? { tessedit_pageseg_mode: opts.psm } : {}),
+      ...(opts.whitelist ? { tessedit_char_whitelist: opts.whitelist } : undefined),
+      ...(opts.psm ? { tessedit_pageseg_mode: opts.psm } : undefined),
     }
   );
 

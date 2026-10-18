@@ -68,7 +68,7 @@ function resampleLinear(input: Float32Array, inputRate: number, outputRate = TAR
 
 type AudioContextCtor = typeof AudioContext;
 function audioContextCtor(): AudioContextCtor | null {
-  if (typeof window === "undefined") return null;
+  if (globalThis.window === undefined) return null;
   const w = window as unknown as { AudioContext?: AudioContextCtor; webkitAudioContext?: AudioContextCtor };
   return w.AudioContext ?? w.webkitAudioContext ?? null;
 }
@@ -288,7 +288,7 @@ type SpeechRecognitionLike = {
 type SpeechRecognitionCtor = new () => SpeechRecognitionLike;
 
 function recognitionCtor(): SpeechRecognitionCtor | null {
-  if (typeof window === "undefined") return null;
+  if (globalThis.window === undefined) return null;
   const w = window as unknown as {
     SpeechRecognition?: SpeechRecognitionCtor;
     webkitSpeechRecognition?: SpeechRecognitionCtor;

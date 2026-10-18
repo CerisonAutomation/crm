@@ -53,10 +53,10 @@ export async function getHumanTasks(orgId: string, filters?: {
   return db.humanTask.findMany({
     where: {
       orgId,
-      ...(filters?.caseId ? { caseId: filters.caseId } : {}),
-      ...(filters?.status ? { status: filters.status } : {}),
-      ...(filters?.assigneeId ? { assigneeId: filters.assigneeId } : {}),
-      ...(filters?.priority ? { priority: filters.priority } : {}),
+      ...(filters?.caseId ? { caseId: filters.caseId } : undefined),
+      ...(filters?.status ? { status: filters.status } : undefined),
+      ...(filters?.assigneeId ? { assigneeId: filters.assigneeId } : undefined),
+      ...(filters?.priority ? { priority: filters.priority } : undefined),
     },
     orderBy: { createdAt: "desc" },
   });
@@ -67,7 +67,7 @@ export async function updateHumanTask(id: string, input: UpdateHumanTaskInput) {
     where: { id },
     data: {
       ...input,
-      ...(input.status === "COMPLETED" ? { completedAt: new Date() } : {}),
+      ...(input.status === "COMPLETED" ? { completedAt: new Date() } : undefined),
     },
   });
 }

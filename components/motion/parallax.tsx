@@ -45,7 +45,7 @@ export function Parallax({
   useEffect(() => {
     const el = ref.current;
     if (!el || reduced) return;
-    if (typeof window === "undefined" || !window.requestAnimationFrame) return;
+    if (globalThis.window === undefined || !window.requestAnimationFrame) return;
 
     let frame = 0;
     let visible = true;

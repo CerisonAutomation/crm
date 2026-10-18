@@ -28,8 +28,7 @@ export async function GET(req: NextRequest) {
                 { website: { contains: q, mode: "insensitive" } },
                 { billingCity: { contains: q, mode: "insensitive" } },
               ],
-            }
-          : {}),
+            } : undefined),
       },
       orderBy: { createdAt: "desc" },
       take: 201,

@@ -203,7 +203,7 @@ export async function sweepReminders(): Promise<{
       where: {
         fieldKey: "dateOfExpiry",
         value: { not: null },
-        ...(expiryCursor ? { id: { gt: expiryCursor } } : {}),
+        ...(expiryCursor ? { id: { gt: expiryCursor } } : undefined),
       },
       select: {
         id: true,

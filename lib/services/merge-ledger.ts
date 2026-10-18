@@ -34,7 +34,7 @@ export async function getMergeLedger(orgId: string, partyId?: string) {
   return db.mergeLedger.findMany({
     where: {
       orgId,
-      ...(partyId ? { partyId } : {}),
+      ...(partyId ? { partyId } : undefined),
     },
     orderBy: { createdAt: "desc" },
   });

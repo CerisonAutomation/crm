@@ -27,7 +27,9 @@ export interface ChannelAdapter {
 	/** Env vars required for the adapter to be usable (tier2 lazy gating). */
 	readonly requiredEnv: string[];
 	isConfigured(env: NodeJS.ProcessEnv): boolean;
-	healthCheck(env?: NodeJS.ProcessEnv): Promise<{ ok: boolean; detail?: string }>;
+	healthCheck(
+		env?: NodeJS.ProcessEnv,
+	): Promise<{ ok: boolean; detail?: string }>;
 }
 
 export type AdapterDescriptor = {
@@ -85,7 +87,11 @@ export interface ChannelProvider {
 	readonly displayName: string;
 	readonly scopes: string[];
 
-	generateAuthUrl(options: { redirectUri: string; codeVerifier: string; state: string }): string;
+	generateAuthUrl(options: {
+		redirectUri: string;
+		codeVerifier: string;
+		state: string;
+	}): string;
 	exchangeCode(input: {
 		code: string;
 		codeVerifier: string;
@@ -97,13 +103,20 @@ export interface ChannelProvider {
 		refreshToken: string;
 		clientId: string;
 		clientSecret: string;
-	}): Promise<{ accessToken: string; refreshToken: string | null; expiresAt: Date | null }>;
+	}): Promise<{
+		accessToken: string;
+		refreshToken: string | null;
+		expiresAt: Date | null;
+	}>;
 	missingScopes(granted: string[]): string[];
 
-	send(connected: {
-		accessToken: string;
-		metadata: Record<string, unknown>;
-	}, message: OutboundChannelMessage): Promise<SendResult>;
+	send(
+		connected: {
+			accessToken: string;
+			metadata: Record<string, unknown>;
+		},
+		message: OutboundChannelMessage,
+	): Promise<SendResult>;
 
 	/** Normalize a verified webhook payload into canonical messages. */
 	normalizeInbound(payload: unknown): InboundChannelMessage[];
@@ -115,12 +128,15 @@ const BASE64URL_PATTERN = /^[A-Za-z0-9\-._~]{43,128}$/;
 
 export function assertValidCodeVerifier(codeVerifier: string): void {
 	if (!BASE64URL_PATTERN.test(codeVerifier)) {
-		throw new Error("code_verifier must be 43-128 chars of unreserved base64url");
+		throw new Error(
+			"code_verifier must be 43-128 chars of unreserved base64url",
+		);
 	}
 }
 
 export function assertValidState(state: string): void {
-	if (state.length < 16) throw new Error("state must be at least 16 characters");
+	if (state.length < 16)
+		throw new Error("state must be at least 16 characters");
 }
 
 /** Scope-gap detection (Postiz `missingScopes`). */
@@ -144,7 +160,12 @@ export type PublishPhase = "draft" | "pending" | "ready" | "completed";
  * MUST resolve to `completed`; a crash after partial mutation may re-enter
  * `ready` only when every mutation is documented idempotent.
  */
-export const PUBLISH_TRANSITIONS: Record<PublishPhase, Partial<Record<Extract<PublishPhase, "pending" | "ready" | "completed">, true>>> = {
+export const PUBLISH_TRANSITIONS: Record<
+	PublishPhase,
+	Partial<
+		Record<Extract<PublishPhase, "pending" | "ready" | "completed">, true>
+	>
+> = {
 	draft: { pending: true },
 	pending: { pending: true, ready: true, completed: true },
 	ready: { ready: true, completed: true },
@@ -158,15 +179,24 @@ export class InvalidPublishTransition extends Error {
 	}
 }
 
-export function assertPublishTransition(from: PublishPhase, to: PublishPhase): void {
+export function assertPublishTransition(
+	from: PublishPhase,
+	to: PublishPhase,
+): void {
 	if (to === "draft") throw new InvalidPublishTransition(from, to);
 	const allowed = PUBLISH_TRANSITIONS[from] as Record<string, true | undefined>;
 	if (!allowed[to]) throw new InvalidPublishTransition(from, to);
 }
 
-export type PendingCheck = { phase: "pending" } | { phase: "ready" } | { phase: "completed" };
+export type PendingCheck =
+	| { phase: "pending" }
+	| { phase: "ready" }
+	| { phase: "completed" };
 
-export function publishPhaseAfterCheck(current: PublishPhase, check: PendingCheck): PublishPhase {
+export function publishPhaseAfterCheck(
+	current: PublishPhase,
+	check: PendingCheck,
+): PublishPhase {
 	assertPublishTransition(current, check.phase);
 	return check.phase;
 }
@@ -199,7 +229,9 @@ export function verifyLinkedinSignature(params: {
 }): boolean {
 	const { rawBody, signatureHeader, clientSecret } = params;
 	if (!signatureHeader || !clientSecret) return false;
-	const expected = createHmac("sha256", clientSecret).update(rawBody, "utf8").digest("base64");
+	const expected = createHmac("sha256", clientSecret)
+		.update(rawBody, "utf8")
+		.digest("base64");
 	const a = Buffer.from(expected, "utf8");
 	const b = Buffer.from(signatureHeader, "utf8");
 	if (a.length !== b.length) return false;

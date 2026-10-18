@@ -277,7 +277,7 @@ export function useP2PCall(input: {
       });
       try {
         if (
-          typeof navigator === "undefined" ||
+          globalThis.navigator === undefined ||
           !navigator.mediaDevices?.getUserMedia
         ) {
           setError(tRef.current("call.unsupported"));

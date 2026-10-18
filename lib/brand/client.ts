@@ -53,7 +53,7 @@ function subscribe(listener: () => void): () => void {
 }
 
 async function load(): Promise<void> {
-  if (started || typeof window === "undefined") return;
+  if (started || globalThis.window === undefined) return;
   started = true;
   // Canon first: the stylesheet already falls back to the canon hexes, so this
   // only makes the variables explicit before the fetch resolves. Idempotent.

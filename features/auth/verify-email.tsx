@@ -167,7 +167,7 @@ export function VerifyEmail() {
   useEffect(() => {
     let alive = true;
     void Promise.resolve().then(async () => {
-      const token = typeof window !== "undefined"
+      const token = globalThis.window !== undefined
         ? new URLSearchParams(window.location.search).get("token")
         : null;
       if (token) {

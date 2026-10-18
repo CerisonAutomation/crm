@@ -16,12 +16,15 @@ import {
 } from "@nestjs/common";
 import { ApiBearerAuth, ApiOperation, ApiTags } from "@nestjs/swagger";
 import type { Request } from "express";
-import { N8nService, type N8nEventTriggerInput } from "./n8n.service";
+import { type N8nEventTriggerInput, N8nService } from "./n8n.service";
 
 export function automationBearerValid(header: string | undefined): boolean {
 	if (!header || !header.toLowerCase().startsWith("bearer ")) return false;
 	const presented = header.slice("bearer ".length).trim();
-	const secrets = [process.env.N8N_TRIGGER_TOKEN, process.env.CRON_SECRET].filter(
+	const secrets = [
+		process.env.N8N_TRIGGER_TOKEN,
+		process.env.CRON_SECRET,
+	].filter(
 		(value): value is string => typeof value === "string" && value.length >= 16,
 	);
 	if (secrets.length === 0 || presented.length === 0) return false;
@@ -53,7 +56,9 @@ export class N8nController {
 	constructor(private readonly n8n: N8nService) {}
 
 	@Post("triggers/events")
-	@ApiOperation({ summary: "Post an automation event; matching event-routines are queued" })
+	@ApiOperation({
+		summary: "Post an automation event; matching event-routines are queued",
+	})
 	@ApiBearerAuth()
 	async triggerEvent(
 		@Body() body: N8nEventTriggerInput,
@@ -66,7 +71,9 @@ export class N8nController {
 	}
 
 	@Post("triggers/routines/:routineId")
-	@ApiOperation({ summary: "Queue a manual routine run from an automation flow" })
+	@ApiOperation({
+		summary: "Queue a manual routine run from an automation flow",
+	})
 	@ApiBearerAuth()
 	async triggerRoutine(
 		@Param("routineId") routineId: string,
@@ -79,7 +86,9 @@ export class N8nController {
 	}
 
 	@Post("actions/webhooks/:webhookId/test")
-	@ApiOperation({ summary: "Send a webhook.test delivery through an existing subscription" })
+	@ApiOperation({
+		summary: "Send a webhook.test delivery through an existing subscription",
+	})
 	@ApiBearerAuth()
 	async testWebhook(
 		@Param("webhookId") webhookId: string,

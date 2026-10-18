@@ -125,8 +125,8 @@ export async function matchDataset(
     body: JSON.stringify({
       queries: {
         name: query.name,
-        ...(query.birthDate ? { birth_date: query.birthDate } : {}),
-        ...(query.country ? { country: query.country } : {}),
+        ...(query.birthDate ? { birth_date: query.birthDate } : undefined),
+        ...(query.country ? { country: query.country } : undefined),
       },
       limit: query.limit ?? 5,
     }),

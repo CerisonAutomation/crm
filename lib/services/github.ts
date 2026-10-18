@@ -62,7 +62,7 @@ async function request<T>(path: string, session: GithubSession, init?: RequestIn
         Authorization: "Bearer " + session.token,
         Accept: "application/vnd.github+json",
         "X-GitHub-Api-Version": "2022-11-28",
-        ...(init && init.headers ? init.headers : {}),
+        ...(init && init.headers ? init.headers : undefined),
       },
       signal: AbortSignal.timeout(15_000),
     });

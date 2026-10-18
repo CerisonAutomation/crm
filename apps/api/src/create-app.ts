@@ -50,7 +50,9 @@ export async function createApp(): Promise<NestExpressApplication> {
 					return;
 				}
 				try {
-					(req as unknown as { body?: unknown }).body = JSON.parse(raw.toString("utf8"));
+					(req as unknown as { body?: unknown }).body = JSON.parse(
+						raw.toString("utf8"),
+					);
 					next();
 				} catch {
 					res.status(400).json({ message: "Invalid JSON body" });

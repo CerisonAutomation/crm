@@ -34,13 +34,21 @@ const BLOCKED_HOSTNAMES = new Set([
 	"instance-data",
 ]);
 
-const BLOCKED_SUFFIXES = [".localhost", ".internal", ".local", ".metadata.google.internal"];
+const BLOCKED_SUFFIXES = [
+	".localhost",
+	".internal",
+	".local",
+	".metadata.google.internal",
+];
 
 function isBlockedIpv4(hostname: string): boolean {
 	const parts = hostname.split(".");
 	if (parts.length !== 4) return false;
 	const octets = parts.map((part) => Number(part));
-	if (octets.some((octet) => !Number.isInteger(octet) || octet < 0 || octet > 255)) return false;
+	if (
+		octets.some((octet) => !Number.isInteger(octet) || octet < 0 || octet > 255)
+	)
+		return false;
 	const [a, b] = octets as [number, number, number, number];
 	if (a === 10) return true;
 	if (a === 127) return true;
@@ -55,7 +63,8 @@ function isBlockedIpv4(hostname: string): boolean {
 function isBlockedIpv6(hostname: string): boolean {
 	const normalized = hostname.replace(/^\[|\]$/g, "").toLowerCase();
 	if (normalized === "::1" || normalized === "::") return true;
-	if (normalized.startsWith("fe80:") || normalized.startsWith("fe80%")) return true;
+	if (normalized.startsWith("fe80:") || normalized.startsWith("fe80%"))
+		return true;
 	if (normalized.startsWith("fc") || normalized.startsWith("fd")) return true; // ULA
 	if (normalized.startsWith("::ffff:")) {
 		const inner = normalized.slice("::ffff:".length);

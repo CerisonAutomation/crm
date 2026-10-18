@@ -201,8 +201,7 @@ async function persistUploadedDocument(
       // Source dimensions + derivative map ride along as JSON, so nothing has to
       // re-decode the object to know which renditions exist.
       ...(image.normalised
-        ? { imageMeta: JSON.stringify({ width: image.width, height: image.height, derivatives }) }
-        : {}),
+        ? { imageMeta: JSON.stringify({ width: image.width, height: image.height, derivatives }) } : undefined),
       },
     });
   } catch (err) {

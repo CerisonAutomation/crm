@@ -27,8 +27,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Spinner, StateBadge, StatusBadge } from "@/components/brand/ui";
-import { Eyebrow, SectionTitle } from "@/components/brand/ui";
+import { Spinner, StateBadge } from "@/components/brand/ui";
+import { AdminPage, AdminPageHeader } from "@/components/brand/admin-surface";
 import { useApiData, LoadingBlock, ErrorBlock } from "@/components/brand/data-state";
 import { toast } from "@/hooks/use-toast";
 import { Plus, RefreshCcw, Trash2, Pencil, Zap, Clock, Activity } from "lucide-react";
@@ -92,8 +92,8 @@ export function TriagePanel() {
   if (error) return <ErrorBlock message={error} onRetry={reload} />;
 
   return (
-    <PageShell>
-      <AdminHeader
+    <AdminPage>
+      <AdminPageHeader
         eyebrow={t("admin.triage")}
         title={t("triage.title")}
         desc={t("triage.intro")}
@@ -135,9 +135,10 @@ export function TriagePanel() {
                     {score.reference}
                   </TableCell>
                   <TableCell>
-                    <StatusBadge variant={tierBadge(score.tier).variant}>
-                      {tierBadge(score.tier).label}
-                    </StatusBadge>
+                    <StateBadge
+                      state={score.tier}
+                      label={tierBadge(score.tier).label}
+                    />
                   </TableCell>
                   <TableCell>
                     {score.score.toString()}
@@ -284,6 +285,6 @@ export function TriagePanel() {
           )}
         </Button>
       </div>
-    </PageShell>
+    </AdminPage>
   );
 }

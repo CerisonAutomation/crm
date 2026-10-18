@@ -39,8 +39,8 @@ export async function getWebhookInboxEntries(orgId: string, filters?: {
   return db.webhookInbox.findMany({
     where: {
       orgId,
-      ...(filters?.status ? { status: filters.status } : {}),
-      ...(filters?.provider ? { provider: filters.provider } : {}),
+      ...(filters?.status ? { status: filters.status } : undefined),
+      ...(filters?.provider ? { provider: filters.provider } : undefined),
     },
     orderBy: { createdAt: "desc" },
   });

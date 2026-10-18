@@ -21,10 +21,9 @@ export async function GET(req: NextRequest) {
 
     const rows = await db.case.findMany({
       where: {
-        ...(status ? { status } : {}),
+        ...(status ? { status } : undefined),
         ...(mine && (ctx.role === "RM" || ctx.role === "SENIOR_RM")
-          ? { assignments: { some: { userId: ctx.userId } } }
-          : {}),
+          ? { assignments: { some: { userId: ctx.userId } } } : undefined),
         ...(q
           ? {
               OR: [
@@ -32,8 +31,7 @@ export async function GET(req: NextRequest) {
                 { client: { name: { contains: q } } },
                 { client: { email: { contains: q } } },
               ],
-            }
-          : {}),
+            } : undefined),
         orgId: ctx.orgId,
       },
       include: {
@@ -47,7 +45,7 @@ export async function GET(req: NextRequest) {
         statusHistory: { select: { to: true, command: true, createdAt: true }, orderBy: { createdAt: "asc" } },
       },
       orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
-      ...(cursor ? { cursor: { id: decodeCursor(cursor) }, skip: 1 } : {}),
+      ...(cursor ? { cursor: { id: decodeCursor(cursor) }, skip: 1 } : undefined),
       take: limit + 1,
     });
 

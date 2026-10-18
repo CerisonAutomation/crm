@@ -26,8 +26,11 @@ export function truncateForStorage(value: unknown, depth = 0): unknown {
 	if (depth >= MAX_DEPTH) return "[depth-truncated]";
 
 	if (Array.isArray(value)) {
-		const items = value.slice(0, MAX_ARRAY_ITEMS).map((item) => truncateForStorage(item, depth + 1));
-		if (value.length > MAX_ARRAY_ITEMS) items.push(`…[${value.length - MAX_ARRAY_ITEMS} more items]`);
+		const items = value
+			.slice(0, MAX_ARRAY_ITEMS)
+			.map((item) => truncateForStorage(item, depth + 1));
+		if (value.length > MAX_ARRAY_ITEMS)
+			items.push(`…[${value.length - MAX_ARRAY_ITEMS} more items]`);
 		return items;
 	}
 
@@ -37,7 +40,8 @@ export function truncateForStorage(value: unknown, depth = 0): unknown {
 		for (const [key, item] of entries.slice(0, MAX_OBJECT_KEYS)) {
 			result[key] = truncateForStorage(item, depth + 1);
 		}
-		if (entries.length > MAX_OBJECT_KEYS) result.__truncated = `${entries.length - MAX_OBJECT_KEYS} more keys`;
+		if (entries.length > MAX_OBJECT_KEYS)
+			result.__truncated = `${entries.length - MAX_OBJECT_KEYS} more keys`;
 		return result;
 	}
 
@@ -54,8 +58,13 @@ export function capJson(value: unknown, maxChars = MAX_JSON_CHARS): unknown {
 	let depth = 1;
 	while (encoded.length > maxChars && depth < MAX_DEPTH) {
 		const shrunk: Record<string, unknown> = {};
-		for (const [key, item] of Object.entries(structured as Record<string, unknown>)) {
-			shrunk[key] = typeof item === "object" && item !== null ? `[object:${depth}]` : truncateText(String(item), 100);
+		for (const [key, item] of Object.entries(
+			structured as Record<string, unknown>,
+		)) {
+			shrunk[key] =
+				typeof item === "object" && item !== null
+					? `[object:${depth}]`
+					: truncateText(String(item), 100);
 		}
 		depth += 1;
 		encoded = JSON.stringify(shrunk) ?? "null";

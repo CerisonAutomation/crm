@@ -89,7 +89,7 @@ export async function GET(req: NextRequest) {
     // (service-triaged); claimed rows carry the org stamped at claim time.
     const leads = await withTenantContext(ctx.orgId, (tx) =>
       tx.lead.findMany({
-        where: { ...(status ? { status } : {}), ...(stage ? { stage } : {}) },
+        where: { ...(status ? { status } : undefined), ...(stage ? { stage } : undefined) },
         orderBy: { createdAt: "desc" },
         take: 200,
       }),
@@ -129,8 +129,8 @@ export async function PATCH(req: NextRequest) {
           where: { id: body.id },
           data: {
             orgId: ctx.orgId,
-            ...(stage ? { stage, status: statusForStage[stage] } : {}),
-            ...(body.ownerId !== undefined ? { ownerId: body.ownerId } : {}),
+            ...(stage ? { stage, status: statusForStage[stage] } : undefined),
+            ...(body.ownerId !== undefined ? { ownerId: body.ownerId } : undefined),
           },
         }),
       );

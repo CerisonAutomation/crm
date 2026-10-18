@@ -12,13 +12,17 @@
  * a WorkflowWait automatically advances every resumable run yielded on it.
  */
 
-import { Injectable, Logger } from "@nestjs/common";
 import type { Db, Prisma } from "@crm/db";
+import { Injectable, Logger } from "@nestjs/common";
 import { InjectDatabase } from "../database/database.constants";
-import { WorkflowGatesService, type ApprovalTimeoutPolicy, type ResolvedPredicate } from "./workflow-gates.service";
-import { WorkflowLedgerService } from "./workflow-ledger.service";
-import { WorkflowNonRetryableError } from "./workflow-errors";
 import { capJson } from "./storage-caps";
+import { WorkflowNonRetryableError } from "./workflow-errors";
+import {
+	type ApprovalTimeoutPolicy,
+	type ResolvedPredicate,
+	WorkflowGatesService,
+} from "./workflow-gates.service";
+import { WorkflowLedgerService } from "./workflow-ledger.service";
 
 export type ResumeTrigger = {
 	kind: "event" | "approval";
@@ -73,7 +77,10 @@ type YieldedRecord = {
 @Injectable()
 export class ResumableWorkflowService {
 	private readonly logger = new Logger(ResumableWorkflowService.name);
-	private readonly definitions = new Map<string, ResumableWorkflowDefinition<never>>();
+	private readonly definitions = new Map<
+		string,
+		ResumableWorkflowDefinition<never>
+	>();
 
 	constructor(
 		@InjectDatabase() private readonly db: Db,
@@ -83,9 +90,14 @@ export class ResumableWorkflowService {
 
 	register<TState>(definition: ResumableWorkflowDefinition<TState>): void {
 		if (this.definitions.has(definition.name)) {
-			throw new WorkflowNonRetryableError(`Resumable workflow ${definition.name} already registered`);
+			throw new WorkflowNonRetryableError(
+				`Resumable workflow ${definition.name} already registered`,
+			);
 		}
-		this.definitions.set(definition.name, definition as ResumableWorkflowDefinition<never>);
+		this.definitions.set(
+			definition.name,
+			definition as ResumableWorkflowDefinition<never>,
+		);
 	}
 
 	registered(): string[] {
@@ -108,13 +120,23 @@ export class ResumableWorkflowService {
 	}
 
 	/** Explicit advancement (also used by the event dispatcher). */
-	async resume(runId: string, trigger: ResumeTrigger): Promise<ResumableRunHandle> {
+	async resume(
+		runId: string,
+		trigger: ResumeTrigger,
+	): Promise<ResumableRunHandle> {
 		const yielded = await this.latestYield(runId);
-		if (!yielded) throw new WorkflowNonRetryableError(`Run ${runId} has no yielded state`);
+		if (!yielded)
+			throw new WorkflowNonRetryableError(`Run ${runId} has no yielded state`);
 		const run = await this.db.workflowRun.findUnique({ where: { id: runId } });
 		if (!run) throw new WorkflowNonRetryableError(`No run ${runId}`);
-		if (run.status === "succeeded" || run.status === "failed" || run.status === "abandoned") {
-			throw new WorkflowNonRetryableError(`Run ${runId} is already ${run.status}`);
+		if (
+			run.status === "succeeded" ||
+			run.status === "failed" ||
+			run.status === "abandoned"
+		) {
+			throw new WorkflowNonRetryableError(
+				`Run ${runId} is already ${run.status}`,
+			);
 		}
 		const definition = this.requireDefinition(run.workflowName);
 		const next = await definition.resume(yielded.state as never, trigger);
@@ -125,7 +147,10 @@ export class ResumableWorkflowService {
 	 * Dispatcher hook: advances every run yielded on `matchEvent` whose frozen
 	 * predicate the payload satisfies. Returns the run ids advanced.
 	 */
-	async resumeMatching(matchEvent: string, payload: Record<string, unknown>): Promise<string[]> {
+	async resumeMatching(
+		matchEvent: string,
+		payload: Record<string, unknown>,
+	): Promise<string[]> {
 		const waits = await this.db.workflowWait.findMany({
 			where: { matchEvent, status: "resumed", resumedReason: "event_match" },
 			orderBy: { resumedAt: "desc" },
@@ -134,15 +159,23 @@ export class ResumableWorkflowService {
 		const advanced: string[] = [];
 		for (const wait of waits) {
 			const runId = wait.runId;
-			const run = await this.db.workflowRun.findUnique({ where: { id: runId } });
+			const run = await this.db.workflowRun.findUnique({
+				where: { id: runId },
+			});
 			if (!run || run.status !== "running") continue;
 			const yielded = await this.latestYield(runId);
 			if (!yielded || yielded.gateId !== wait.id) continue;
 			try {
-				const handle = await this.resume(runId, { kind: "event", eventName: matchEvent, payload });
+				const handle = await this.resume(runId, {
+					kind: "event",
+					eventName: matchEvent,
+					payload,
+				});
 				if (handle.status === "completed") advanced.push(runId);
 			} catch (error) {
-				this.logger.warn(`resumeMatching failed for run ${runId}: ${String(error)}`);
+				this.logger.warn(
+					`resumeMatching failed for run ${runId}: ${String(error)}`,
+				);
 			}
 		}
 		return advanced;
@@ -152,7 +185,8 @@ export class ResumableWorkflowService {
 
 	private requireDefinition(name: string): ResumableWorkflowDefinition<never> {
 		const definition = this.definitions.get(name);
-		if (!definition) throw new WorkflowNonRetryableError(`No resumable workflow ${name}`);
+		if (!definition)
+			throw new WorkflowNonRetryableError(`No resumable workflow ${name}`);
 		return definition;
 	}
 
@@ -222,12 +256,19 @@ export class ResumableWorkflowService {
 			timeoutAt: new Date(Date.now() + step.timeoutMs),
 			timeoutPolicy: step.timeoutPolicy ?? "abort",
 		});
-		const record: YieldedRecord = { state: step.state, gate: "approval", gateId: approval.id };
+		const record: YieldedRecord = {
+			state: step.state,
+			gate: "approval",
+			gateId: approval.id,
+		};
 		await this.appendYielded(runId, record);
 		return { status: "waiting", runId, gate: "approval", gateId: approval.id };
 	}
 
-	private async appendYielded(runId: string, record: YieldedRecord): Promise<void> {
+	private async appendYielded(
+		runId: string,
+		record: YieldedRecord,
+	): Promise<void> {
 		await this.ledger.appendEvent({
 			runId,
 			kind: YIELDED_KIND,

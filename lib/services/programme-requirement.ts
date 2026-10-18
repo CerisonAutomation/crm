@@ -49,8 +49,8 @@ export async function getProgrammeRequirements(filters: {
 }) {
   return db.programmeRequirement.findMany({
     where: {
-      ...(filters.programmeId ? { programmeId: filters.programmeId } : {}),
-      ...(filters.versionId ? { versionId: filters.versionId } : {}),
+      ...(filters.programmeId ? { programmeId: filters.programmeId } : undefined),
+      ...(filters.versionId ? { versionId: filters.versionId } : undefined),
     },
     orderBy: { key: "asc" },
   });

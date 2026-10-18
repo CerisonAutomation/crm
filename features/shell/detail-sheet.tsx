@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import * as React from "react";
 import { cn } from "@/lib/utils";
 import {
   Sheet,
@@ -40,7 +40,7 @@ export function DetailSheet({
   className?: string;
   children: React.ReactNode;
 }) {
-  const content = useRef(null);
+  const content = React.useRef<HTMLDivElement>(null);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>

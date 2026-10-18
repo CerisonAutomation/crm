@@ -7,17 +7,30 @@
  */
 
 import { Injectable } from "@nestjs/common";
-import type { WorkflowDefinition, WorkflowRunner, RunWorkflowOptions, RunWorkflowResult } from "./workflow-runner.service";
+import type {
+	RunWorkflowOptions,
+	RunWorkflowResult,
+	WorkflowDefinition,
+	WorkflowRunner,
+} from "./workflow-runner.service";
 
 @Injectable()
 export class WorkflowRegistry {
-	private readonly definitions = new Map<string, WorkflowDefinition<never, unknown>>();
+	private readonly definitions = new Map<
+		string,
+		WorkflowDefinition<never, unknown>
+	>();
 
-	register<TInput, TResult>(definition: WorkflowDefinition<TInput, TResult>): void {
+	register<TInput, TResult>(
+		definition: WorkflowDefinition<TInput, TResult>,
+	): void {
 		if (this.definitions.has(definition.name)) {
 			throw new Error(`Workflow ${definition.name} is already registered`);
 		}
-		this.definitions.set(definition.name, definition as WorkflowDefinition<never, unknown>);
+		this.definitions.set(
+			definition.name,
+			definition as WorkflowDefinition<never, unknown>,
+		);
 	}
 
 	names(): string[] {
@@ -38,6 +51,10 @@ export class WorkflowRegistry {
 		if (!definition) {
 			throw new Error(`Workflow ${name} is not registered`);
 		}
-		return runner.run(definition as WorkflowDefinition<TInput, TResult>, input, options);
+		return runner.run(
+			definition as WorkflowDefinition<TInput, TResult>,
+			input,
+			options,
+		);
 	}
 }

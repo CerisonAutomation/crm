@@ -46,7 +46,7 @@ const defaultSchedule: IdleScheduler = (cb, opts) => {
     opts && typeof opts.timeout === "number" ? opts.timeout : 2000;
   try {
     const w =
-      typeof window !== "undefined"
+      globalThis.window !== undefined
         ? (window as unknown as {
             requestIdleCallback?: (
               c: () => void,
@@ -56,7 +56,7 @@ const defaultSchedule: IdleScheduler = (cb, opts) => {
         : null;
     const ric = w ? w.requestIdleCallback : undefined;
     if (typeof ric === "function") return ric(cb, { timeout });
-    if (typeof window !== "undefined")
+    if (globalThis.window !== undefined)
       return window.setTimeout(cb, FALLBACK_DELAY_MS);
   } catch {
     void 0;
@@ -67,7 +67,7 @@ const defaultSchedule: IdleScheduler = (cb, opts) => {
 function defaultCancel(handle: number | unknown): void {
   try {
     const w =
-      typeof window !== "undefined"
+      globalThis.window !== undefined
         ? (window as unknown as { cancelIdleCallback?: (h: number) => void })
         : null;
     if (
@@ -79,7 +79,7 @@ function defaultCancel(handle: number | unknown): void {
       return;
     }
     if (
-      typeof window !== "undefined" &&
+      globalThis.window !== undefined &&
       (typeof handle === "number" ||
         (typeof handle === "object" && handle !== null))
     ) {

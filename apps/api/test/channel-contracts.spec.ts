@@ -1,16 +1,16 @@
 import { describe, expect, it } from "bun:test";
+import { createHmac } from "node:crypto";
 import {
 	assertPublishTransition,
 	assertValidCodeVerifier,
 	assertValidState,
 	InvalidPublishTransition,
 	missingScopes,
+	type PublishPhase,
 	publishPhaseAfterCheck,
 	verifyLinkedinSignature,
 	verifyMetaSignature,
-	type PublishPhase,
 } from "../src/channels/channel-contracts";
-import { createHmac } from "node:crypto";
 
 describe("PKCE + scope helpers", () => {
 	it("rejects malformed code verifiers", () => {
@@ -39,14 +39,24 @@ describe("pending-publish state machine", () => {
 	});
 
 	it("blocks regressions and terminal exits", () => {
-		expect(() => assertPublishTransition("completed", "ready")).toThrow(InvalidPublishTransition);
-		expect(() => assertPublishTransition("ready", "pending")).toThrow(InvalidPublishTransition);
-		expect(() => assertPublishTransition("pending", "draft")).toThrow(InvalidPublishTransition);
+		expect(() => assertPublishTransition("completed", "ready")).toThrow(
+			InvalidPublishTransition,
+		);
+		expect(() => assertPublishTransition("ready", "pending")).toThrow(
+			InvalidPublishTransition,
+		);
+		expect(() => assertPublishTransition("pending", "draft")).toThrow(
+			InvalidPublishTransition,
+		);
 	});
 
 	it("advances phase after checks", () => {
-		expect(publishPhaseAfterCheck("pending", { phase: "ready" })).toBe("ready" as PublishPhase);
-		expect(publishPhaseAfterCheck("ready", { phase: "completed" })).toBe("completed" as PublishPhase);
+		expect(publishPhaseAfterCheck("pending", { phase: "ready" })).toBe(
+			"ready" as PublishPhase,
+		);
+		expect(publishPhaseAfterCheck("ready", { phase: "completed" })).toBe(
+			"completed" as PublishPhase,
+		);
 	});
 });
 
@@ -60,19 +70,41 @@ describe("webhook authenticity", () => {
 			verifyMetaSignature({ rawBody, signatureHeader: signature, appSecret }),
 		).toBe(true);
 		expect(
-			verifyMetaSignature({ rawBody: `${rawBody} `, signatureHeader: signature, appSecret }),
+			verifyMetaSignature({
+				rawBody: `${rawBody} `,
+				signatureHeader: signature,
+				appSecret,
+			}),
 		).toBe(false);
-		expect(verifyMetaSignature({ rawBody, signatureHeader: "sha256=beef", appSecret })).toBe(false);
-		expect(verifyMetaSignature({ rawBody, signatureHeader: undefined, appSecret })).toBe(false);
+		expect(
+			verifyMetaSignature({
+				rawBody,
+				signatureHeader: "sha256=beef",
+				appSecret,
+			}),
+		).toBe(false);
+		expect(
+			verifyMetaSignature({ rawBody, signatureHeader: undefined, appSecret }),
+		).toBe(false);
 	});
 
 	it("accepts a valid LinkedIn base64 signature", () => {
-		const signature = createHmac("sha256", "li-secret").update(rawBody, "utf8").digest("base64");
+		const signature = createHmac("sha256", "li-secret")
+			.update(rawBody, "utf8")
+			.digest("base64");
 		expect(
-			verifyLinkedinSignature({ rawBody, signatureHeader: signature, clientSecret: "li-secret" }),
+			verifyLinkedinSignature({
+				rawBody,
+				signatureHeader: signature,
+				clientSecret: "li-secret",
+			}),
 		).toBe(true);
 		expect(
-			verifyLinkedinSignature({ rawBody, signatureHeader: signature, clientSecret: "wrong" }),
+			verifyLinkedinSignature({
+				rawBody,
+				signatureHeader: signature,
+				clientSecret: "wrong",
+			}),
 		).toBe(false);
 	});
 });

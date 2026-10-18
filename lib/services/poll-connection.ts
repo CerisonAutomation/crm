@@ -61,8 +61,8 @@ export async function getPollConnections(orgId: string, filters?: {
   return db.pollConnection.findMany({
     where: {
       orgId,
-      ...(filters?.status ? { status: filters.status } : {}),
-      ...(filters?.sourceType ? { sourceType: filters.sourceType } : {}),
+      ...(filters?.status ? { status: filters.status } : undefined),
+      ...(filters?.sourceType ? { sourceType: filters.sourceType } : undefined),
     },
     orderBy: { createdAt: "desc" },
   });

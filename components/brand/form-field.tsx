@@ -46,8 +46,8 @@ export function FormField({
   const field = isValidElement<Record<string, unknown>>(children)
     ? cloneElement(children, {
         id: childId,
-        ...(describedBy ? { "aria-describedby": describedBy } : {}),
-        ...(error ? { "aria-invalid": true } : {}),
+        ...(describedBy ? { "aria-describedby": describedBy } : undefined),
+        ...(error ? { "aria-invalid": true } : undefined),
       })
     : children;
 

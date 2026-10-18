@@ -116,7 +116,7 @@ export async function generateMetadata({
       title,
       description,
       type: "article",
-      ...(loaded.page.publishedAt ? { publishedTime: loaded.page.publishedAt } : {}),
+      ...(loaded.page.publishedAt ? { publishedTime: loaded.page.publishedAt } : undefined),
     },
   };
 }

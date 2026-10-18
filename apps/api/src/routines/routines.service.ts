@@ -12,24 +12,24 @@
  * every due run through the `run-routine` workflow, then advances `nextRunAt`.
  */
 
-import { Injectable } from "@nestjs/common";
-import { InjectDatabase } from "../database/database.constants";
 import { randomUUID } from "node:crypto";
 import type { Db, Prisma } from "@crm/db";
-import { WorkflowRegistry } from "../workflows/workflow-registry.service";
-import { WorkflowRunner } from "../workflows/workflow-runner.service";
-import {
-	buildRunRoutineWorkflow,
-	type RunRoutineWorkflow,
-	type RunRoutineWorkflowPayload,
-} from "../workflows/run-routine.workflow";
+import { Injectable } from "@nestjs/common";
+import { InjectDatabase } from "../database/database.constants";
 import {
 	buildReconcileRoutineRunsWorkflow,
 	type ReconcileRoutineRunsWorkflow,
 	type ReconcileRoutineRunsWorkflowPayload,
 } from "../workflows/reconcile-routine-runs.workflow";
-import { isValidCron, isValidTimeZone, nextCronRun } from "./cron-expression";
+import {
+	buildRunRoutineWorkflow,
+	type RunRoutineWorkflow,
+	type RunRoutineWorkflowPayload,
+} from "../workflows/run-routine.workflow";
 import { WorkflowNonRetryableError } from "../workflows/workflow-errors";
+import { WorkflowRegistry } from "../workflows/workflow-registry.service";
+import { WorkflowRunner } from "../workflows/workflow-runner.service";
+import { isValidCron, isValidTimeZone, nextCronRun } from "./cron-expression";
 
 export type RoutineInput = {
 	name: string;
@@ -138,7 +138,8 @@ export class RoutinesService {
 		}
 
 		const timezone = input.timezone ?? "UTC";
-		if (!isValidTimeZone(timezone)) problems.push(`unknown timezone ${timezone}`);
+		if (!isValidTimeZone(timezone))
+			problems.push(`unknown timezone ${timezone}`);
 
 		if (input.triggerKind === "event") {
 			if (!input.triggerEvents || input.triggerEvents.length === 0) {
@@ -146,20 +147,29 @@ export class RoutinesService {
 			}
 		}
 
-		if (input.debounceSeconds != null && (input.debounceSeconds < 0 || input.debounceSeconds > 86_400)) {
+		if (
+			input.debounceSeconds != null &&
+			(input.debounceSeconds < 0 || input.debounceSeconds > 86_400)
+		) {
 			problems.push("debounceSeconds must be between 0 and 86400");
 		}
 
 		return problems;
 	}
 
-	async create(ownerUserId: string, input: RoutineInput): Promise<RoutineRecord> {
+	async create(
+		ownerUserId: string,
+		input: RoutineInput,
+	): Promise<RoutineRecord> {
 		const problems = RoutinesService.validateInput(input);
-		if (problems.length > 0) throw new WorkflowNonRetryableError(problems.join("; "));
+		if (problems.length > 0)
+			throw new WorkflowNonRetryableError(problems.join("; "));
 
 		const timezone = input.timezone ?? "UTC";
 		const nextRunAt =
-			input.triggerKind === "cron" && input.cronExpression && input.enabled !== false
+			input.triggerKind === "cron" &&
+			input.cronExpression &&
+			input.enabled !== false
 				? nextCronRun(input.cronExpression, new Date(), timezone)
 				: null;
 
@@ -184,7 +194,8 @@ export class RoutinesService {
 
 	async update(id: string, input: RoutineInput): Promise<RoutineRecord> {
 		const problems = RoutinesService.validateInput(input);
-		if (problems.length > 0) throw new WorkflowNonRetryableError(problems.join("; "));
+		if (problems.length > 0)
+			throw new WorkflowNonRetryableError(problems.join("; "));
 
 		const timezone = input.timezone ?? "UTC";
 		const enabled = input.enabled ?? true;
@@ -228,7 +239,10 @@ export class RoutinesService {
 	 * Event dispatch: every enabled event-routine whose triggers match receives
 	 * a queued run, unless a recent run inside the debounce window suppresses it.
 	 */
-	async dispatchEvent(ownerUserId: string, match: EventTriggerMatch): Promise<string[]> {
+	async dispatchEvent(
+		ownerUserId: string,
+		match: EventTriggerMatch,
+	): Promise<string[]> {
 		const routines = await this.db.routine.findMany({
 			where: { ownerUserId, enabled: true, triggerKind: "event" },
 		});
@@ -242,7 +256,11 @@ export class RoutinesService {
 				const recent = await this.db.routineRun.findFirst({
 					where: {
 						routineId: routine.id,
-						createdAt: { gte: new Date(match.at.getTime() - routine.debounceSeconds * 1000) },
+						createdAt: {
+							gte: new Date(
+								match.at.getTime() - routine.debounceSeconds * 1000,
+							),
+						},
 					},
 				});
 				if (recent) continue;
@@ -250,7 +268,8 @@ export class RoutinesService {
 
 			const run = await this.enqueueRun(routine.id, ownerUserId, "event", {
 				triggerEvent: match.event,
-				triggerPayload: (match as unknown as Record<string, unknown>) ?? undefined,
+				triggerPayload:
+					(match as unknown as Record<string, unknown>) ?? undefined,
 			});
 			runIds.push(run);
 		}
@@ -266,8 +285,14 @@ export class RoutinesService {
 
 		// The field filter only applies when the event reports changed fields;
 		// an event without that detail cannot be disproven, so it matches.
-		if (routine.changedFields.length > 0 && match.changedFields && match.changedFields.length > 0) {
-			const overlap = routine.changedFields.some((field) => (match.changedFields ?? []).includes(field));
+		if (
+			routine.changedFields.length > 0 &&
+			match.changedFields &&
+			match.changedFields.length > 0
+		) {
+			const overlap = routine.changedFields.some((field) =>
+				(match.changedFields ?? []).includes(field),
+			);
 			if (!overlap) return false;
 		}
 
@@ -275,7 +300,10 @@ export class RoutinesService {
 	}
 
 	/** Queues one routine run and dispatches the `run-routine` workflow. */
-	async triggerManually(routineId: string, ownerUserId: string): Promise<string> {
+	async triggerManually(
+		routineId: string,
+		ownerUserId: string,
+	): Promise<string> {
 		return this.enqueueRun(routineId, ownerUserId, "manual", {});
 	}
 
@@ -293,7 +321,9 @@ export class RoutinesService {
 				executedByUserId: ownerUserId,
 				triggerKind,
 				triggerEvent: extra.triggerEvent ?? null,
-				triggerPayload: (extra.triggerPayload ?? undefined) as unknown as Prisma.InputJsonValue | undefined,
+				triggerPayload: (extra.triggerPayload ?? undefined) as unknown as
+					| Prisma.InputJsonValue
+					| undefined,
 				scheduledFor: new Date(),
 			},
 		});
@@ -314,7 +344,9 @@ export class RoutinesService {
 	 * Cron tick: starts due cron runs and returns a summary for the caller
 	 * (the endpoint's response body).
 	 */
-	async tick(now = new Date()): Promise<{ started: number; advanced: number; settled: number }> {
+	async tick(
+		now = new Date(),
+	): Promise<{ started: number; advanced: number; settled: number }> {
 		const due = await this.db.routine.findMany({
 			where: {
 				enabled: true,
@@ -341,7 +373,9 @@ export class RoutinesService {
 					nextRunAt: next,
 					lastRunAt: now,
 					lastRunStatus: "queued",
-					...(next === null ? { enabled: false, disabledReason: "scheduleExhausted" } : {}),
+					...(next === null
+						? { enabled: false, disabledReason: "scheduleExhausted" }
+						: {}),
 				},
 			});
 			advanced += 1;
@@ -350,9 +384,15 @@ export class RoutinesService {
 		const reconcilePayload: ReconcileRoutineRunsWorkflowPayload = {
 			ownerUserId: null,
 		};
-		const reconcile = await this.runner.run(this.reconcileWorkflow, reconcilePayload, {});
+		const reconcile = await this.runner.run(
+			this.reconcileWorkflow,
+			reconcilePayload,
+			{},
+		);
 		const settled =
-			reconcile.ok && typeof reconcile.result === "object" && reconcile.result !== null
+			reconcile.ok &&
+			typeof reconcile.result === "object" &&
+			reconcile.result !== null
 				? (reconcile.result as { settledRuns: number }).settledRuns
 				: 0;
 

@@ -410,7 +410,7 @@ function applyScroll(direction: "top" | "bottom" | "up" | "down") {
 /** True when the tab is visible — background polling pauses while it is hidden. */
 function isTabVisible(): boolean {
   return (
-    typeof document === "undefined" || document.visibilityState !== "hidden"
+    globalThis.document === undefined || document.visibilityState !== "hidden"
   );
 }
 
@@ -691,7 +691,7 @@ export function AppShell() {
 
   useEffect(() => {
     void Promise.resolve().then(() => {
-      if (typeof window === "undefined" || !sessionId) {
+      if (globalThis.window === undefined || !sessionId) {
         setVerifyDismissed(false);
         return;
       }

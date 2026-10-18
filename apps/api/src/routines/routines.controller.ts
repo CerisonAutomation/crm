@@ -2,6 +2,8 @@
  * Routine CRUD + manual trigger + run history, session-authenticated.
  */
 
+import type { auth } from "@crm/auth";
+import type { Db } from "@crm/db";
 import {
 	BadRequestException,
 	Body,
@@ -14,12 +16,10 @@ import {
 	Put,
 } from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
-import type { auth } from "@crm/auth";
 import { Session, type UserSession } from "@thallesp/nestjs-better-auth";
-import type { Db } from "@crm/db";
 import { InjectDatabase } from "../database/database.constants";
-import { RoutinesService, type RoutineInput } from "./routines.service";
 import { WorkflowNonRetryableError } from "../workflows/workflow-errors";
+import { type RoutineInput, RoutinesService } from "./routines.service";
 
 type CrmSession = UserSession<typeof auth>;
 
@@ -40,7 +40,9 @@ export class RoutinesController {
 	@Get(":id/runs")
 	@ApiOperation({ summary: "Run history for one routine" })
 	async runs(@Session() session: CrmSession, @Param("id") id: string) {
-		const owned = (await this.routines.list(session.user.id)).find((routine) => routine.id === id);
+		const owned = (await this.routines.list(session.user.id)).find(
+			(routine) => routine.id === id,
+		);
 		if (!owned) throw new NotFoundException(`No routine with id ${id}`);
 		const runs = await this.db.routineRun.findMany({
 			where: { routineId: id },
@@ -62,8 +64,14 @@ export class RoutinesController {
 
 	@Put(":id")
 	@ApiOperation({ summary: "Update a routine" })
-	async update(@Session() session: CrmSession, @Param("id") id: string, @Body() body: RoutineInput) {
-		const owned = (await this.routines.list(session.user.id)).find((routine) => routine.id === id);
+	async update(
+		@Session() session: CrmSession,
+		@Param("id") id: string,
+		@Body() body: RoutineInput,
+	) {
+		const owned = (await this.routines.list(session.user.id)).find(
+			(routine) => routine.id === id,
+		);
 		if (!owned) throw new NotFoundException(`No routine with id ${id}`);
 		try {
 			return { routine: await this.routines.update(id, body) };
@@ -75,7 +83,9 @@ export class RoutinesController {
 	@Delete(":id")
 	@ApiOperation({ summary: "Delete a routine" })
 	async remove(@Session() session: CrmSession, @Param("id") id: string) {
-		const owned = (await this.routines.list(session.user.id)).find((routine) => routine.id === id);
+		const owned = (await this.routines.list(session.user.id)).find(
+			(routine) => routine.id === id,
+		);
 		if (!owned) throw new NotFoundException(`No routine with id ${id}`);
 		await this.routines.remove(id);
 		return { deleted: true };
@@ -84,7 +94,9 @@ export class RoutinesController {
 	@Post(":id/trigger")
 	@ApiOperation({ summary: "Queue a manual run" })
 	async trigger(@Session() session: CrmSession, @Param("id") id: string) {
-		const owned = (await this.routines.list(session.user.id)).find((routine) => routine.id === id);
+		const owned = (await this.routines.list(session.user.id)).find(
+			(routine) => routine.id === id,
+		);
 		if (!owned) throw new NotFoundException(`No routine with id ${id}`);
 		const runId = await this.routines.triggerManually(id, session.user.id);
 		return { runId };

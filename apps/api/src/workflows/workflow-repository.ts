@@ -19,7 +19,11 @@ export interface WorkflowRunRepository {
 	/** Marks the run as running and returns the attempt number (1-based). */
 	markRunning(id: string): Promise<number>;
 	markSucceeded(id: string): Promise<void>;
-	markFailed(id: string, failure: WorkflowFailure, expected: boolean): Promise<void>;
+	markFailed(
+		id: string,
+		failure: WorkflowFailure,
+		expected: boolean,
+	): Promise<void>;
 	/** Recovery sweep: abandon runs stuck in `running` or `pending`. */
 	abandonStale(before: Date): Promise<number>;
 }
@@ -38,6 +42,11 @@ export interface WorkflowStepRunRepository {
 	 * Records a failed attempt. `willRetry` marks the step `pending` again so
 	 * operators can see retry churn; otherwise the step ends `failed`.
 	 */
-	markFailed(id: string, attempt: number, failure: WorkflowFailure, willRetry: boolean): Promise<void>;
+	markFailed(
+		id: string,
+		attempt: number,
+		failure: WorkflowFailure,
+		willRetry: boolean,
+	): Promise<void>;
 	markSucceeded(id: string, attempt: number): Promise<void>;
 }

@@ -160,7 +160,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ hoo
         trigger: "hook.inbound",
         context: { ...payload, __hookId: hookId, __endpointId: endpoint.id },
         actorLabel: "Inbound hook (autopilot)",
-        ...(eventId ? { dedupeKey: `inbound:${eventId}` } : {}),
+        ...(eventId ? { dedupeKey: `inbound:${eventId}` } : undefined),
       });
       await recordHookCall(endpoint.id, endpoint.orgId);
       await ledger("hook.received", "PROCESSED", { hookId, endpointId: endpoint.id, runId: run.id, contextKeys: Object.keys(payload) });
@@ -204,7 +204,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ hoo
       trigger: "hook.inbound",
       context: { ...payload, __hookId: hookId },
       actorLabel: "Inbound hook",
-      ...(eventId ? { dedupeKey: `inbound:${eventId}` } : {}),
+      ...(eventId ? { dedupeKey: `inbound:${eventId}` } : undefined),
     });
     await ledger("hook.received", "PROCESSED", { hookId, workflowName: wf.name, runId: run.id, contextKeys: Object.keys(payload) });
     await scoped(wf.orgId, () =>

@@ -80,7 +80,7 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
         events: JSON.parse(row.events) as string[],
         active: row.active,
       },
-      ...(rotatedSecret ? { secret: rotatedSecret } : {}), // shown once, never again
+      ...(rotatedSecret ? { secret: rotatedSecret } : undefined), // shown once, never again
     });
   })(req);
 }

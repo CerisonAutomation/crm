@@ -59,16 +59,30 @@ export function validateBookingRules(
 	bufferMinutes: number,
 	rules: AvailabilityRules,
 ): void {
-	if (!Number.isInteger(durationMinutes) || durationMinutes < MIN_SLOT_MINUTES || durationMinutes > MAX_SLOT_MINUTES) {
+	if (
+		!Number.isInteger(durationMinutes) ||
+		durationMinutes < MIN_SLOT_MINUTES ||
+		durationMinutes > MAX_SLOT_MINUTES
+	) {
 		throw new BookingRuleError(
 			`durationMinutes must be an integer between ${MIN_SLOT_MINUTES} and ${MAX_SLOT_MINUTES}`,
 		);
 	}
-	if (!Number.isInteger(bufferMinutes) || bufferMinutes < 0 || bufferMinutes > MAX_BUFFER_MINUTES) {
-		throw new BookingRuleError(`bufferMinutes must be an integer between 0 and ${MAX_BUFFER_MINUTES}`);
+	if (
+		!Number.isInteger(bufferMinutes) ||
+		bufferMinutes < 0 ||
+		bufferMinutes > MAX_BUFFER_MINUTES
+	) {
+		throw new BookingRuleError(
+			`bufferMinutes must be an integer between 0 and ${MAX_BUFFER_MINUTES}`,
+		);
 	}
 	for (const window of rules.windows) {
-		if (!Number.isInteger(window.weekday) || window.weekday < 0 || window.weekday > 6) {
+		if (
+			!Number.isInteger(window.weekday) ||
+			window.weekday < 0 ||
+			window.weekday > 6
+		) {
 			throw new BookingRuleError(`weekday ${window.weekday} is outside 0-6`);
 		}
 		if (
@@ -98,15 +112,20 @@ export function localDateKey(date: Date, timeZone: string): string {
 		month: "2-digit",
 		day: "2-digit",
 	}).formatToParts(date);
-	const lookup = (type: string): string => parts.find((part) => part.type === type)?.value ?? "";
+	const lookup = (type: string): string =>
+		parts.find((part) => part.type === type)?.value ?? "";
 	return `${lookup("year")}-${lookup("month")}-${lookup("day")}`;
 }
 
 function localWeekday(date: Date, timeZone: string): number {
-	const name = new Intl.DateTimeFormat("en-US", { timeZone, weekday: "short" }).format(date);
+	const name = new Intl.DateTimeFormat("en-US", {
+		timeZone,
+		weekday: "short",
+	}).format(date);
 	const names = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 	const index = names.indexOf(name);
-	if (index < 0) throw new BookingRuleError(`Intl returned unknown weekday ${name}`);
+	if (index < 0)
+		throw new BookingRuleError(`Intl returned unknown weekday ${name}`);
 	return index;
 }
 
@@ -122,7 +141,9 @@ function localMinuteOfDay(date: Date, timeZone: string): number {
 		hourCycle: "h23",
 	}).formatToParts(date);
 	const hour = Number(parts.find((part) => part.type === "hour")?.value ?? "0");
-	const minute = Number(parts.find((part) => part.type === "minute")?.value ?? "0");
+	const minute = Number(
+		parts.find((part) => part.type === "minute")?.value ?? "0",
+	);
 	return hour * 60 + minute;
 }
 
@@ -130,13 +151,18 @@ function localMinuteOfDay(date: Date, timeZone: string): number {
  * Instant for `minuteOfDay` wall-clock on the local day containing `day`,
  * with DST-safe resolution (probe offsets; nonexistent times return null).
  */
-function instantAtLocalMinute(day: Date, timeZone: string, minuteOfDay: number): Date | null {
+function instantAtLocalMinute(
+	day: Date,
+	timeZone: string,
+	minuteOfDay: number,
+): Date | null {
 	const key = localDateKey(day, timeZone);
 	const parts = key.split("-");
 	const year = Number(parts[0] ?? "0");
 	const month = Number(parts[1] ?? "0");
 	const date = Number(parts[2] ?? "0");
-	const asIfUtc = Date.UTC(year, month - 1, date, 0, 0, 0) + minuteOfDay * 60_000;
+	const asIfUtc =
+		Date.UTC(year, month - 1, date, 0, 0, 0) + minuteOfDay * 60_000;
 
 	const offsetAt = (instant: number): number => {
 		const probe = new Date(instant);
@@ -149,8 +175,16 @@ function instantAtLocalMinute(day: Date, timeZone: string, minuteOfDay: number):
 			minute: "2-digit",
 			hourCycle: "h23",
 		}).formatToParts(probe);
-		const get = (type: string): number => Number(probeParts.find((part) => part.type === type)?.value ?? "0");
-		const asUtc = Date.UTC(get("year"), get("month") - 1, get("day"), get("hour"), get("minute"), 0);
+		const get = (type: string): number =>
+			Number(probeParts.find((part) => part.type === type)?.value ?? "0");
+		const asUtc = Date.UTC(
+			get("year"),
+			get("month") - 1,
+			get("day"),
+			get("hour"),
+			get("minute"),
+			0,
+		);
 		return asUtc - Math.floor(instant / 60_000) * 60_000;
 	};
 
@@ -163,7 +197,12 @@ function instantAtLocalMinute(day: Date, timeZone: string, minuteOfDay: number):
 	return new Date(guess);
 }
 
-function overlaps(aStart: number, aEnd: number, bStart: number, bEnd: number): boolean {
+function overlaps(
+	aStart: number,
+	aEnd: number,
+	bStart: number,
+	bEnd: number,
+): boolean {
 	return aStart < bEnd && bStart < aEnd;
 }
 
@@ -173,7 +212,11 @@ function overlaps(aStart: number, aEnd: number, bStart: number, bEnd: number): b
  * existing bookings (with buffers) and `notBefore`.
  */
 export function computeDaySlots(request: SlotRequest): BookingSlot[] {
-	validateBookingRules(request.durationMinutes, request.bufferMinutes, request.rules);
+	validateBookingRules(
+		request.durationMinutes,
+		request.bufferMinutes,
+		request.rules,
+	);
 
 	const weekday = localWeekday(request.day, request.timezone);
 	const dateKey = localDateKey(request.day, request.timezone);
@@ -197,15 +240,24 @@ export function computeDaySlots(request: SlotRequest): BookingSlot[] {
 			minute + request.durationMinutes <= window.endMinute;
 			minute += stepMinutes
 		) {
-			const startsAt = instantAtLocalMinute(request.day, request.timezone, minute);
+			const startsAt = instantAtLocalMinute(
+				request.day,
+				request.timezone,
+				minute,
+			);
 			if (!startsAt) continue;
-			const endsAt = new Date(startsAt.getTime() + request.durationMinutes * 60_000);
+			const endsAt = new Date(
+				startsAt.getTime() + request.durationMinutes * 60_000,
+			);
 
 			if (startsAt.getTime() < request.notBefore.getTime()) continue;
 
-			const startWithBuffer = startsAt.getTime() - request.bufferMinutes * 60_000;
+			const startWithBuffer =
+				startsAt.getTime() - request.bufferMinutes * 60_000;
 			const endWithBuffer = endsAt.getTime() + request.bufferMinutes * 60_000;
-			const clashes = occupied.some((busy) => overlaps(startWithBuffer, endWithBuffer, busy.start, busy.end));
+			const clashes = occupied.some((busy) =>
+				overlaps(startWithBuffer, endWithBuffer, busy.start, busy.end),
+			);
 			if (clashes) continue;
 
 			slots.push({ startsAt, endsAt });
@@ -221,7 +273,12 @@ export function bookingsConflict(
 	a: { startsAt: Date; endsAt: Date },
 	b: { startsAt: Date; endsAt: Date },
 ): boolean {
-	return overlaps(a.startsAt.getTime(), a.endsAt.getTime(), b.startsAt.getTime(), b.endsAt.getTime());
+	return overlaps(
+		a.startsAt.getTime(),
+		a.endsAt.getTime(),
+		b.startsAt.getTime(),
+		b.endsAt.getTime(),
+	);
 }
 
 export function slotFitsWindow(
@@ -231,8 +288,14 @@ export function slotFitsWindow(
 ): boolean {
 	const startMinute = localMinuteOfDay(slot.startsAt, timezone);
 	const endMinute = localMinuteOfDay(slot.endsAt, timezone);
-	const sameDay = localDateKey(slot.startsAt, timezone) === localDateKey(slot.endsAt, timezone);
-	return sameDay && startMinute >= window.startMinute && endMinute <= window.endMinute;
+	const sameDay =
+		localDateKey(slot.startsAt, timezone) ===
+		localDateKey(slot.endsAt, timezone);
+	return (
+		sameDay &&
+		startMinute >= window.startMinute &&
+		endMinute <= window.endMinute
+	);
 }
 
 export function formatDayKey(day: Date, timeZone: string): string {

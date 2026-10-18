@@ -3,6 +3,8 @@
  * OAuth code exchange, connected-account listing and guarded outbound send.
  */
 
+import type { auth } from "@crm/auth";
+import type { RawBodyRequest } from "@nestjs/common";
 import {
 	BadRequestException,
 	Body,
@@ -16,17 +18,15 @@ import {
 	Query,
 	Req,
 } from "@nestjs/common";
-import type { RawBodyRequest } from "@nestjs/common";
-import type { Request } from "express";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
-import type { auth } from "@crm/auth";
 import { Session, type UserSession } from "@thallesp/nestjs-better-auth";
-import { ChannelsService } from "./channels.service";
+import type { Request } from "express";
 import {
 	metaHubChallenge,
 	verifyLinkedinSignature,
 	verifyMetaSignature,
 } from "./channel-contracts";
+import { ChannelsService } from "./channels.service";
 
 type CrmSession = UserSession<typeof auth>;
 
@@ -47,10 +47,12 @@ export class ChannelsController {
 		@Query("hub.verify_token") token?: string,
 		@Query("hub.challenge") challenge?: string,
 	) {
-		if (!META_PROVIDERS.has(provider)) throw new NotFoundException("Unknown provider");
+		if (!META_PROVIDERS.has(provider))
+			throw new NotFoundException("Unknown provider");
 		const verifyToken = process.env.META_WEBHOOK_VERIFY_TOKEN ?? "";
 		const echoed = metaHubChallenge({ mode, token, verifyToken, challenge });
-		if (echoed === null) throw new BadRequestException("hub verification failed");
+		if (echoed === null)
+			throw new BadRequestException("hub verification failed");
 		return echoed;
 	}
 
@@ -93,7 +95,10 @@ export class ChannelsController {
 		// recipient (business) handle to its connected account.
 		let received = 0;
 		for (const message of messages) {
-			const ownerUserId = await this.resolveOwner(provider, message.recipientHandle ?? message.senderHandle);
+			const ownerUserId = await this.resolveOwner(
+				provider,
+				message.recipientHandle ?? message.senderHandle,
+			);
 			if (!ownerUserId) continue;
 			received += await this.channels.ingest(ownerUserId, [message]);
 		}
@@ -138,7 +143,9 @@ export class ChannelsController {
 	// ---------------------------------------------------------------- send
 
 	@Post(":provider/send")
-	@ApiOperation({ summary: "Send a channel message (double-send-lock guarded)" })
+	@ApiOperation({
+		summary: "Send a channel message (double-send-lock guarded)",
+	})
 	async send(
 		@Session() session: CrmSession,
 		@Param("provider") provider: string,
@@ -192,7 +199,10 @@ export class ChannelsController {
 
 	// ------------------------------------------------------------- helpers
 
-	private async resolveOwner(provider: string, handle: string): Promise<string | null> {
+	private async resolveOwner(
+		provider: string,
+		handle: string,
+	): Promise<string | null> {
 		const account = await this.channels
 			.listAccountsByHandle(provider, handle)
 			.catch(() => null);

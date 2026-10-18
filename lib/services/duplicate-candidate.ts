@@ -28,7 +28,7 @@ export async function getDuplicateCandidates(orgId: string, status?: string) {
   return db.duplicateCandidate.findMany({
     where: {
       orgId,
-      ...(status ? { status } : {}),
+      ...(status ? { status } : undefined),
     },
     orderBy: { score: "desc" },
   });

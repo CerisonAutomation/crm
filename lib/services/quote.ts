@@ -54,8 +54,8 @@ export async function getQuotes(orgId: string, filters?: {
   return db.quote.findMany({
     where: {
       orgId,
-      ...(filters?.caseId ? { caseId: filters.caseId } : {}),
-      ...(filters?.status ? { status: filters.status } : {}),
+      ...(filters?.caseId ? { caseId: filters.caseId } : undefined),
+      ...(filters?.status ? { status: filters.status } : undefined),
     },
     orderBy: { createdAt: "desc" },
   });

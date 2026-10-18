@@ -155,7 +155,7 @@ export async function getPipeline(
     }
   }
   const online =
-    typeof navigator !== "undefined" ? navigator.onLine !== false : true;
+    globalThis.navigator !== undefined ? navigator.onLine !== false : true;
   if (!online) {
     throw new ModelUnavailable(
       "offline",

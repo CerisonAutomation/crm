@@ -16,14 +16,17 @@
  *  - rows are kept on cancel for forensic value (never cascade-deleted early).
  */
 
-import { Injectable } from "@nestjs/common";
-import { EventEmitter } from "node:events";
 import { randomUUID } from "node:crypto";
+import { EventEmitter } from "node:events";
 import type { Db } from "@crm/db";
+import { Injectable } from "@nestjs/common";
 import { InjectDatabase } from "../database/database.constants";
 import { WorkflowNonRetryableError } from "./workflow-errors";
 
-export type ResolvedPredicate = Record<string, string | number | boolean | null>;
+export type ResolvedPredicate = Record<
+	string,
+	string | number | boolean | null
+>;
 
 export type WaitRegistration = {
 	runId: string;
@@ -33,7 +36,11 @@ export type WaitRegistration = {
 	timeoutAt?: Date | null;
 };
 
-export type WaitResumeReason = "event_match" | "timeout" | "manual" | "cancelled";
+export type WaitResumeReason =
+	| "event_match"
+	| "timeout"
+	| "manual"
+	| "cancelled";
 export type ApprovalTimeoutPolicy = "abort" | "auto_approve";
 
 export type ApprovalRequest = {
@@ -49,14 +56,22 @@ export type ApprovalRequest = {
 
 export type GateDecision = "approved" | "rejected";
 
-const RESUME_REASONS: readonly WaitResumeReason[] = ["event_match", "timeout", "manual", "cancelled"];
+const RESUME_REASONS: readonly WaitResumeReason[] = [
+	"event_match",
+	"timeout",
+	"manual",
+	"cancelled",
+];
 
 /**
  * Frozen-predicate matcher: every key in the predicate must equal the same key
  * in the event payload (strict equality). An empty predicate matches any event
  * of the registered kind.
  */
-export function predicateMatches(predicate: ResolvedPredicate, eventPayload: Record<string, unknown>): boolean {
+export function predicateMatches(
+	predicate: ResolvedPredicate,
+	eventPayload: Record<string, unknown>,
+): boolean {
 	for (const [key, expected] of Object.entries(predicate)) {
 		const actual = eventPayload[key];
 		if (actual !== expected) return false;
@@ -108,7 +123,11 @@ export class WorkflowGatesService {
 	 * update guarantees a single winner when events race; returns the resumed
 	 * wait or null when nothing matched / already resumed.
 	 */
-	async resumeByEvent(matchEvent: string, eventPayload: Record<string, unknown>, runEventId?: string) {
+	async resumeByEvent(
+		matchEvent: string,
+		eventPayload: Record<string, unknown>,
+		runEventId?: string,
+	) {
 		const candidates = await this.db.workflowWait.findMany({
 			where: { matchEvent, status: "active" },
 			orderBy: { createdAt: "asc" },
@@ -140,7 +159,11 @@ export class WorkflowGatesService {
 	async resumeManually(waitId: string): Promise<boolean> {
 		const won = await this.db.workflowWait.updateMany({
 			where: { id: waitId, status: "active" },
-			data: { status: "resumed", resumedAt: new Date(), resumedReason: "manual" },
+			data: {
+				status: "resumed",
+				resumedAt: new Date(),
+				resumedReason: "manual",
+			},
 		});
 		if (won.count === 1) this.wake.emit(`wait:${waitId}`, "manual");
 		return won.count === 1;
@@ -150,7 +173,11 @@ export class WorkflowGatesService {
 	async cancelWait(waitId: string): Promise<boolean> {
 		const won = await this.db.workflowWait.updateMany({
 			where: { id: waitId, status: "active" },
-			data: { status: "cancelled", resumedAt: new Date(), resumedReason: "cancelled" },
+			data: {
+				status: "cancelled",
+				resumedAt: new Date(),
+				resumedReason: "cancelled",
+			},
 		});
 		if (won.count === 1) this.wake.emit(`wait:${waitId}`, "cancelled");
 		return won.count === 1;
@@ -182,12 +209,17 @@ export class WorkflowGatesService {
 	 * resumes that happen in another process. At-most-once is preserved by the
 	 * CAS resume in `resumeByEvent`.
 	 */
-	async awaitEvent(registration: WaitRegistration & { timeoutMs: number }): Promise<AwaitEventResult> {
+	async awaitEvent(
+		registration: WaitRegistration & { timeoutMs: number },
+	): Promise<AwaitEventResult> {
 		const timeoutAt = new Date(Date.now() + registration.timeoutMs);
 		const wait = await this.registerWait({ ...registration, timeoutAt });
 
 		const outcome = await new Promise<WaitResumeReason>((resolve) => {
-			const timer = setTimeout(() => resolve("timeout"), registration.timeoutMs);
+			const timer = setTimeout(
+				() => resolve("timeout"),
+				registration.timeoutMs,
+			);
 			const onWake = (reason: WaitResumeReason) => {
 				clearTimeout(timer);
 				this.wake.off(`wait:${wait.id}`, onWake);
@@ -215,7 +247,9 @@ export class WorkflowGatesService {
 		if (outcome === "timeout") {
 			await this.sweepTimedOutWaits(new Date(Date.now() + 1));
 		}
-		const row = await this.db.workflowWait.findUnique({ where: { id: wait.id } });
+		const row = await this.db.workflowWait.findUnique({
+			where: { id: wait.id },
+		});
 		return {
 			waitId: wait.id,
 			resumed: row?.status === "resumed",
@@ -256,7 +290,9 @@ export class WorkflowGatesService {
 		note?: string,
 	): Promise<boolean> {
 		if (decision !== "approved" && decision !== "rejected") {
-			throw new WorkflowNonRetryableError(`Unknown approval decision ${decision}`);
+			throw new WorkflowNonRetryableError(
+				`Unknown approval decision ${decision}`,
+			);
 		}
 		const won = await this.db.workflowApproval.updateMany({
 			where: { id: approvalId, status: "pending" },
@@ -276,25 +312,35 @@ export class WorkflowGatesService {
 	 * human resolves it or the timeout policy applies (`abort` -> timed_out,
 	 * `auto_approve` -> approved by the system).
 	 */
-	async awaitApproval(request: ApprovalRequest & { timeoutMs: number }): Promise<AwaitApprovalResult> {
+	async awaitApproval(
+		request: ApprovalRequest & { timeoutMs: number },
+	): Promise<AwaitApprovalResult> {
 		const timeoutAt = new Date(Date.now() + request.timeoutMs);
 		const approval = await this.requestApproval({ ...request, timeoutAt });
 
-		const outcome = await new Promise<"approved" | "rejected" | "timeout">((resolve) => {
-			const timer = setTimeout(() => resolve("timeout"), request.timeoutMs);
-			const onWake = (decision: "approved" | "rejected") => {
-				clearTimeout(timer);
-				this.wake.off(`approval:${approval.id}`, onWake);
-				resolve(decision);
-			};
-			this.wake.on(`approval:${approval.id}`, onWake);
-		});
+		const outcome = await new Promise<"approved" | "rejected" | "timeout">(
+			(resolve) => {
+				const timer = setTimeout(() => resolve("timeout"), request.timeoutMs);
+				const onWake = (decision: "approved" | "rejected") => {
+					clearTimeout(timer);
+					this.wake.off(`approval:${approval.id}`, onWake);
+					resolve(decision);
+				};
+				this.wake.on(`approval:${approval.id}`, onWake);
+			},
+		);
 
 		let status: AwaitApprovalResult["status"];
 		if (outcome === "timeout") {
 			const policy = request.timeoutPolicy ?? "abort";
-			const swept = await this.sweepTimedOutApprovals(policy, new Date(Date.now() + 1));
-			status = policy === "auto_approve" && swept.autoApproved === 1 ? "approved" : "timed_out";
+			const swept = await this.sweepTimedOutApprovals(
+				policy,
+				new Date(Date.now() + 1),
+			);
+			status =
+				policy === "auto_approve" && swept.autoApproved === 1
+					? "approved"
+					: "timed_out";
 			if (swept.autoApproved === 1 && policy === "auto_approve") {
 				await this.db.workflowApproval.updateMany({
 					where: { id: approval.id, resolutionNote: "timed_out_auto_approve" },
@@ -305,7 +351,9 @@ export class WorkflowGatesService {
 			status = outcome;
 		}
 
-		const row = await this.db.workflowApproval.findUnique({ where: { id: approval.id } });
+		const row = await this.db.workflowApproval.findUnique({
+			where: { id: approval.id },
+		});
 		return {
 			approvalId: approval.id,
 			status: (row?.status as AwaitApprovalResult["status"]) ?? status,
@@ -368,7 +416,9 @@ export class WorkflowGatesService {
 	// ------------------------------------------------------------ queries
 
 	async activeWaitsForRun(runId: string) {
-		return this.db.workflowWait.findMany({ where: { runId, status: "active" } });
+		return this.db.workflowWait.findMany({
+			where: { runId, status: "active" },
+		});
 	}
 
 	async pendingApprovals(approverHint?: string) {

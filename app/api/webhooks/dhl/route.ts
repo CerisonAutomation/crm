@@ -153,12 +153,12 @@ export async function POST(req: NextRequest) {
         where: { id: dispatch.id },
         data: {
           status: newStatus,
-          ...(newStatus === "DELIVERED" ? { deliveredAt: new Date() } : {}),
+          ...(newStatus === "DELIVERED" ? { deliveredAt: new Date() } : undefined),
         },
       }),
     );
 
-    ledger("webhook.dhl.received", { trackingId, dispatchId: dispatch.id, status: newStatus, previous: dispatch.status, ...(eventId ? { eventId } : {}) });
+    ledger("webhook.dhl.received", { trackingId, dispatchId: dispatch.id, status: newStatus, previous: dispatch.status, ...(eventId ? { eventId } : undefined) });
 
     if (dedupeKey) {
       await db.idempotencyKey.update({ where: { key: dedupeKey }, data: { resultRef: dispatch.id } }).catch(() => undefined);

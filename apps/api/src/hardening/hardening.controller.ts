@@ -3,6 +3,7 @@
  * access codes, custom domains and the suppression list.
  */
 
+import type { auth } from "@crm/auth";
 import {
 	Body,
 	Controller,
@@ -13,7 +14,6 @@ import {
 	Query,
 } from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
-import type { auth } from "@crm/auth";
 import { Session, type UserSession } from "@thallesp/nestjs-better-auth";
 import {
 	PortalAccessService,
@@ -37,9 +37,16 @@ export class HardeningController {
 	// ------------------------------------------------------------- secrets
 
 	@Post("secrets")
-	@ApiOperation({ summary: "Store or rotate a workspace secret (metadata only returned)" })
-	async putSecret(@Session() session: CrmSession, @Body() body: { name: string; value: string }) {
-		return { secret: await this.secrets.put(session.user.id, body.name, body.value) };
+	@ApiOperation({
+		summary: "Store or rotate a workspace secret (metadata only returned)",
+	})
+	async putSecret(
+		@Session() session: CrmSession,
+		@Body() body: { name: string; value: string },
+	) {
+		return {
+			secret: await this.secrets.put(session.user.id, body.name, body.value),
+		};
 	}
 
 	@Get("secrets")
@@ -50,14 +57,19 @@ export class HardeningController {
 
 	@Post("secrets/:name/delete")
 	@ApiOperation({ summary: "Delete a secret" })
-	async deleteSecret(@Session() session: CrmSession, @Param("name") name: string) {
+	async deleteSecret(
+		@Session() session: CrmSession,
+		@Param("name") name: string,
+	) {
 		return { deleted: await this.secrets.remove(session.user.id, name) };
 	}
 
 	// --------------------------------------------------------- portal codes
 
 	@Post("portal-codes")
-	@ApiOperation({ summary: "Issue a portal access code (raw code returned once)" })
+	@ApiOperation({
+		summary: "Issue a portal access code (raw code returned once)",
+	})
 	async issueCode(
 		@Session() session: CrmSession,
 		@Body() body: { label: string; maxUses?: number; expiresAt?: string },
@@ -71,7 +83,9 @@ export class HardeningController {
 	}
 
 	@Post("portal-codes/consume")
-	@ApiOperation({ summary: "Consume a portal access code (public entry point)" })
+	@ApiOperation({
+		summary: "Consume a portal access code (public entry point)",
+	})
 	async consumeCode(@Body() body: { code: string }) {
 		return this.portal.consume(body.code);
 	}
@@ -91,9 +105,16 @@ export class HardeningController {
 	// ------------------------------------------------------------ domains
 
 	@Post("domains")
-	@ApiOperation({ summary: "Register a custom domain (returns verification token)" })
-	async registerDomain(@Session() session: CrmSession, @Body() body: { domain: string }) {
-		return { domain: await this.domains.register(session.user.id, body.domain) };
+	@ApiOperation({
+		summary: "Register a custom domain (returns verification token)",
+	})
+	async registerDomain(
+		@Session() session: CrmSession,
+		@Body() body: { domain: string },
+	) {
+		return {
+			domain: await this.domains.register(session.user.id, body.domain),
+		};
 	}
 
 	@Post("domains/verify")
@@ -102,7 +123,13 @@ export class HardeningController {
 		@Session() session: CrmSession,
 		@Body() body: { domain: string; txtRecords: string[] },
 	) {
-		return { verified: await this.domains.verify(session.user.id, body.domain, body.txtRecords ?? []) };
+		return {
+			verified: await this.domains.verify(
+				session.user.id,
+				body.domain,
+				body.txtRecords ?? [],
+			),
+		};
 	}
 
 	@Get("domains")
@@ -119,14 +146,27 @@ export class HardeningController {
 		@Session() session: CrmSession,
 		@Body() body: { channel: string; handle: string; reason?: string },
 	) {
-		await this.suppression.suppress(session.user.id, body.channel, body.handle, body.reason);
+		await this.suppression.suppress(
+			session.user.id,
+			body.channel,
+			body.handle,
+			body.reason,
+		);
 		return { suppressed: true };
 	}
 
 	@Get("suppression/check")
 	@ApiOperation({ summary: "Check suppression status for a handle" })
-	async checkSuppression(@Query("channel") channel: string, @Query("handle") handle: string) {
-		return { suppressed: await this.suppression.isSuppressed(channel ?? "", handle ?? "") };
+	async checkSuppression(
+		@Query("channel") channel: string,
+		@Query("handle") handle: string,
+	) {
+		return {
+			suppressed: await this.suppression.isSuppressed(
+				channel ?? "",
+				handle ?? "",
+			),
+		};
 	}
 
 	@Post("suppression/remove")
@@ -135,7 +175,13 @@ export class HardeningController {
 		@Session() session: CrmSession,
 		@Body() body: { channel: string; handle: string },
 	) {
-		return { removed: await this.suppression.remove(session.user.id, body.channel, body.handle) };
+		return {
+			removed: await this.suppression.remove(
+				session.user.id,
+				body.channel,
+				body.handle,
+			),
+		};
 	}
 
 	@Get("suppression")

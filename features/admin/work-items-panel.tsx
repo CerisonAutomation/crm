@@ -24,15 +24,14 @@ export function WorkItemsPanel() {
       eyebrow="Case Management"
       fetchList={(qs) => api.listWorkItems(qs)}
       fetchOne={(id) => api.getWorkItem(id)}
-      createEntity={(p) => api.createWorkItem(p as { caseId: string; title: string; priority: string; assignee?: string; dueAt?: string }) as unknown as Promise<{ [key: string]: WorkItem }>}
-      updateEntity={(id, p) => api.updateWorkItem(id, p as { title?: string; status?: string; priority?: string; assignee?: string; dueAt?: string }) as unknown as Promise<{ [key: string]: WorkItem }>}
+      createEntity={(p) => api.createWorkItem(p as { caseId: string; title: string; priority: string; assignee?: string }) as unknown as Promise<{ [key: string]: WorkItem }>}
+      updateEntity={(id, p) => api.updateWorkItem(id, p as { title?: string; status?: string; priority?: string; assignee?: string }) as unknown as Promise<{ [key: string]: WorkItem }>}
       columns={columns}
       createFields={[
         { name: "caseId", label: "Case ID", required: true },
         { name: "title", label: "Title", required: true },
         { name: "priority", label: "Priority", required: true },
         { name: "assignee", label: "Assignee" },
-        { name: "dueAt", label: "Due Date" },
       ]}
       filterPlaceholder="Search work items..."
     />

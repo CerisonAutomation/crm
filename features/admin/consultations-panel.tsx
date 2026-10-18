@@ -1,16 +1,14 @@
 "use client";
 /**
- * ConsultationsPanel — admin management for consultations.
- * Lists all consultations with ability to confirm/cancel.
+ * ConsultationsPanel — admin view of scheduled consultations.
+ * Read-only ledger with a detail dialog (confirm/cancel happens on bookings).
  */
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { api } from "@/lib/api-client";
 import { useI18n } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -22,89 +20,182 @@ import {
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Spinner, StateBadge } from "@/components/brand/ui";
-import { Eyebrow, SectionTitle } from "@/components/brand/ui";
-import { useApiData, LoadingBlock, ErrorBlock } from "@/components/brand/data-state";
-import { toast } from "@/hooks/use-toast";
-import { Plus, RefreshCcw, Trash2, Pencil, CheckCircle2, X, CalendarClock } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { StateBadge } from "@/components/brand/ui";
+import { AdminPage, AdminPageHeader } from "@/components/brand/admin-surface";
+import {
+  useApiData,
+  LoadingBlock,
+  ErrorBlock,
+} from "@/components/brand/data-state";
 
-export type Consultation = {
+type Consultation = {
   id: string;
-  orgId: string;
   leadName: string;
   leadEmail: string;
   leadPhone: string | null;
   programmeKey: string | null;
-  scheduledAt: string; // ISO string
+  scheduledAt: string;
   durationMin: number;
-  status: "REQUESTED" | "CONFIRMED" | "COMPLETED" | "CANCELLED";
+  status: string;
   icsSentAt: string | null;
   notes: string | null;
-  createdAt: string; // ISO string
-  updatedAt: string; // ISO string
 };
 
 export function ConsultationsPanel() {
   const { t } = useI18n();
-  const [showCreate, setShowCreate] = useState(false);
   const [showDetail, setShowDetail] = useState<Consultation | null>(null);
-  const [showEdit, setShowEdit] = useState<Consultation | null>(null);
-  const [showDelete, setShowDelete] = useState<Consultation | null>(null);
-  const [createForm, setCreateForm] = useState<Record<string, string>>({});
-  const [editForm, setEditForm] = useState<Record<string, string>>({});
-  const [submitting, setSubmitting] = useState(false);
 
   const { data, loading, error, reload } = useApiData(() =>
-    api.get(`/api/consultations`),
+    api.consultations(),
   );
+  const consultations: Consultation[] = data?.consultations ?? [];
 
-  // Note: There's no specific consultations endpoint in the API client yet
-  // We'll need to check if one exists or create a workaround
-  
-  // For now, we'll show a placeholder and note that the API endpoint needs to be created
-  const consultations: Consultation[] = [];
-
-  const statusBadge = (status: Consultation["status"]) => {
-    const config: Record<
-      Consultation["status"],
-      { variant: "default" | "destructive" | "secondary"; label: string }
-    > = {
-      REQUESTED: { variant: "secondary", label: t("consultations.status.requested") },
-      CONFIRMED: { variant: "default", label: t("consultations.status.confirmed") },
-      COMPLETED: { variant: "default", label: t("consultations.status.completed") },
-      CANCELLED: { variant: "destructive", label: t("consultations.status.cancelled") },
-    };
-    return config[status];
+  const statusLabel = (status: string) => {
+    switch (status) {
+      case "REQUESTED":
+        return t("consultations.status.requested");
+      case "CONFIRMED":
+        return t("consultations.status.confirmed");
+      case "COMPLETED":
+        return t("consultations.status.completed");
+      case "CANCELLED":
+        return t("consultations.status.cancelled");
+      default:
+        return status;
+    }
   };
 
   if (loading) return <LoadingBlock />;
   if (error) return <ErrorBlock message={error} onRetry={reload} />;
 
   return (
-    <PageShell>
-      <AdminHeader
+    <AdminPage>
+      <AdminPageHeader
         eyebrow={t("admin.consultations")}
         title={t("consultations.title")}
         desc={t("consultations.intro")}
       />
-      
-      <Card className="flex flex-col items-center justify-center rounded-md border-dashed border-border bg-card/50 px-6 py-12 text-center">
-        <p className="font-editorial text-lg text-cobble-ink">
-          {t("consultations.placeholderTitle")}
-        </p>
-        <p className="mt-4 text-sm text-muted-foreground">
-          {t("consultations.placeholderDescription")}
-        </p>
-        <Button variant="outline" size="sm">
-          {t("consultations.placeholderAction")}
-        </Button>
-      </Card>
-    </PageShell>
+
+      {consultations.length === 0 ? (
+        <Card className="flex flex-col items-center justify-center rounded-md border-dashed border-border bg-card/50 px-6 py-12 text-center">
+          <p className="font-editorial text-lg text-cobble-ink">
+            {t("consultations.placeholderTitle")}
+          </p>
+          <p className="mt-4 text-sm text-muted-foreground">
+            {t("consultations.placeholderDescription")}
+          </p>
+        </Card>
+      ) : (
+        <Card className="gap-0 overflow-x-auto rounded-md border-border p-0">
+          <Table className="w-full">
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t("consultations.column.lead")}</TableHead>
+                <TableHead>{t("common.email")}</TableHead>
+                <TableHead>{t("consultations.column.scheduled")}</TableHead>
+                <TableHead>{t("common.status")}</TableHead>
+                <TableHead className="w-20 text-right">
+                  {t("common.actions")}
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {consultations.map((consultation) => (
+                <TableRow key={consultation.id}>
+                  <TableCell className="text-sm font-medium text-cobble-ink">
+                    {consultation.leadName}
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {consultation.leadEmail}
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {new Date(consultation.scheduledAt).toLocaleString([], {
+                      month: "short",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </TableCell>
+                  <TableCell>
+                    <StateBadge
+                      state={consultation.status}
+                      label={statusLabel(consultation.status)}
+                    />
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowDetail(consultation)}
+                    >
+                      {t("common.details")}
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
+      )}
+
+      {showDetail && (
+        <Dialog open={!!showDetail} onOpenChange={() => setShowDetail(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{t("consultations.detailTitle")}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>{t("common.name")}</Label>
+                <p className="text-sm text-cobble-ink">
+                  {showDetail.leadName}
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label>{t("common.email")}</Label>
+                <p className="text-sm text-muted-foreground">
+                  {showDetail.leadEmail}
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label>{t("common.phone")}</Label>
+                <p className="text-sm text-muted-foreground">
+                  {showDetail.leadPhone ?? t("common.none")}
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label>{t("consultations.column.scheduled")}</Label>
+                <p className="text-sm text-cobble-ink">
+                  {new Date(showDetail.scheduledAt).toLocaleString()} ·{" "}
+                  {showDetail.durationMin} min
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label>{t("common.status")}</Label>
+                <StateBadge
+                  state={showDetail.status}
+                  label={statusLabel(showDetail.status)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>{t("common.description")}</Label>
+                <p className="text-sm text-muted-foreground">
+                  {showDetail.notes ?? t("common.none")}
+                </p>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowDetail(null)}>
+                {t("common.close")}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+    </AdminPage>
   );
 }

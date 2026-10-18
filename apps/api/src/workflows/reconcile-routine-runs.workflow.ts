@@ -11,9 +11,9 @@
  * on the next tick.
  */
 
-import type { StepExecutor, WorkflowRunner } from "./workflow-runner.service";
 import { reportFailure } from "./capture-failure";
 import { toWorkflowFailure, type WorkflowTenant } from "./workflow-errors";
+import type { StepExecutor, WorkflowRunner } from "./workflow-runner.service";
 
 const WORKFLOW_NAME = "reconcile-routine-runs";
 
@@ -26,10 +26,15 @@ export type ReconcileRoutineRunsPort = {
 	/** Abandons workflow runs whose heartbeat expired. Returns rows touched. */
 	normalizeExpiredWorkflowRuns(asOf: Date): Promise<number>;
 	/** Settles orphaned routine runs. Returns rows touched. */
-	settleRoutineRuns(input: { ownerUserId: string | null; asOf: Date }): Promise<number>;
+	settleRoutineRuns(input: {
+		ownerUserId: string | null;
+		asOf: Date;
+	}): Promise<number>;
 };
 
-export function buildReconcileRoutineRunsWorkflow(port: ReconcileRoutineRunsPort) {
+export function buildReconcileRoutineRunsWorkflow(
+	port: ReconcileRoutineRunsPort,
+) {
 	return {
 		name: WORKFLOW_NAME,
 		async handler(
@@ -44,8 +49,14 @@ export function buildReconcileRoutineRunsWorkflow(port: ReconcileRoutineRunsPort
 					{ maxRetries: 0 },
 					() => port.normalizeExpiredWorkflowRuns(new Date()),
 				);
-				const settledRuns = await step("settleRoutineRunsStep", { maxRetries: 0 }, () =>
-					port.settleRoutineRuns({ ownerUserId: payload.ownerUserId, asOf: new Date() }),
+				const settledRuns = await step(
+					"settleRoutineRunsStep",
+					{ maxRetries: 0 },
+					() =>
+						port.settleRoutineRuns({
+							ownerUserId: payload.ownerUserId,
+							asOf: new Date(),
+						}),
 				);
 				return { abandonedRuns, settledRuns };
 			} catch (err) {
@@ -56,7 +67,9 @@ export function buildReconcileRoutineRunsWorkflow(port: ReconcileRoutineRunsPort
 	};
 }
 
-export type ReconcileRoutineRunsWorkflow = ReturnType<typeof buildReconcileRoutineRunsWorkflow>;
+export type ReconcileRoutineRunsWorkflow = ReturnType<
+	typeof buildReconcileRoutineRunsWorkflow
+>;
 
 export async function runReconcileRoutineRunsWorkflow(
 	runner: WorkflowRunner,

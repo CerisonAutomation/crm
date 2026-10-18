@@ -44,7 +44,7 @@ export async function getParties(orgId: string, type?: string) {
   return db.party.findMany({
     where: {
       orgId,
-      ...(type ? { type } : {}),
+      ...(type ? { type } : undefined),
     },
     orderBy: { createdAt: "desc" },
   });

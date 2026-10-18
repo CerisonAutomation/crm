@@ -5,9 +5,9 @@
 import { Module } from "@nestjs/common";
 import { DatabaseModule } from "../database/database.module";
 import { WorkflowsModule } from "../workflows/workflows.module";
-import { RoutinesService } from "./routines.service";
-import { RoutinesController } from "./routines.controller";
 import { CronController } from "./cron.controller";
+import { RoutinesController } from "./routines.controller";
+import { RoutinesService } from "./routines.service";
 
 @Module({
 	imports: [DatabaseModule, WorkflowsModule],

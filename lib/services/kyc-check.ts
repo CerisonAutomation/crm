@@ -42,9 +42,9 @@ export async function getKycChecks(orgId: string, filters?: {
   return db.kycCheck.findMany({
     where: {
       orgId,
-      ...(filters?.caseId ? { caseId: filters.caseId } : {}),
-      ...(filters?.checkType ? { checkType: filters.checkType } : {}),
-      ...(filters?.status ? { status: filters.status } : {}),
+      ...(filters?.caseId ? { caseId: filters.caseId } : undefined),
+      ...(filters?.checkType ? { checkType: filters.checkType } : undefined),
+      ...(filters?.status ? { status: filters.status } : undefined),
     },
     orderBy: { createdAt: "desc" },
   });
@@ -55,7 +55,7 @@ export async function updateKycCheck(id: string, input: UpdateKycCheckInput) {
     where: { id },
     data: {
       ...input,
-      ...(input.reviewedBy ? { reviewedAt: new Date() } : {}),
+      ...(input.reviewedBy ? { reviewedAt: new Date() } : undefined),
     },
   });
 }

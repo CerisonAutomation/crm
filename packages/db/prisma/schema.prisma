@@ -48,7 +48,11 @@ model User {
   workspaceDomains      WorkspaceDomain[]
   portalAccessCodes     PortalAccessCode[]
   suppressionEntries    SuppressionEntry[]
-  ownedApplicationCases ApplicationCase[]
+  workflowRuns          WorkflowRun[]
+  routines              Routine[]
+  routineRuns           RoutineRun[]
+  webhookSubscriptions  Webhook[]
+  webhookDeliveries     WebhookDelivery[]
 
   createdAgentDefinitions AgentDefinition[]             @relation("AgentDefinitionCreator")
   createdAgentVersions    AgentVersion[]                @relation("AgentVersionCreator")
@@ -344,8 +348,6 @@ model Company {
   activities     Activity[]
   emailThreads   EmailThread[]
   calendarEvents CalendarEvent[]
-  applicationCases ApplicationCase[]
-  dueDiligenceProfiles DueDiligenceProfile[]
   fieldValues    FieldValue[]
   createdAt      DateTime            @default(now())
   updatedAt      DateTime            @updatedAt
@@ -411,10 +413,6 @@ model Contact {
   fieldValues     FieldValue[]
   visitors        TrackedVisitor[]   @relation("VisitorContact")
   submissions     FormSubmission[]   @relation("SubmissionContact")
-  applicationCases ApplicationCase[]
-  screeningRuns ScreeningRun[]
-  dueDiligenceProfiles DueDiligenceProfile[]
-  eligibilityAssessments EligibilityAssessment[]
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
 
@@ -1611,509 +1609,36 @@ model Apikey {
 // Citizen Lane models — converted from twenty-apps/internal/citizen-lane/src/objects
 // ════════════════════════════════════════════════════════════════════════════════
 
-enum CaseStage {
-  ASSESSMENT
-  AGREEMENT
-  PAYMENT
-  DOCUMENT_COLLECTION
-  RM_REVIEW
-  PREPARING_SUBMISSION
-  SUBMITTED
-  ON_HOLD
-  CLOSED
-}
-
-enum DocumentReviewStatus {
-  REQUESTED
-  UPLOADED
-  NEEDS_INFORMATION
-  APPROVED
-  EXPIRED
-}
-
-enum ScreeningRunStatus {
-  QUEUED
-  RUNNING
-  REVIEW_REQUIRED
-  CLEARED
-  FAILED
-  CANCELLED
-}
-
-enum DueDiligenceStatus {
-  NOT_STARTED
-  IN_REVIEW
-  INFORMATION_REQUIRED
-  APPROVED
-  DECLINED
-  EXPIRED
-}
-
-enum DueDiligenceLevel {
-  SDD
-  CDD
-  EDD
-}
-
-enum AssessmentStatus {
-  DRAFT
-  SUBMITTED
-  PROVISIONAL
-  REVIEWED
-  CLOSED
-}
-
-enum AssessmentOutcome {
-  VERY_HIGH
-  HIGH
-  MEDIUM
-  VERY_LOW
-  BESPOKE_REVIEW
-}
-
-enum ProviderConnectionStatus {
-  DRAFT
-  PENDING_APPROVAL
-  ENABLED
-  PAUSED
-  RETIRED
-}
-
-enum RouteStatus {
-  DRAFT
-  ACTIVE
-  PAUSED
-  RETIRED
-}
-
-enum WorkItemStatus {
-  TODO
-  IN_PROGRESS
-  BLOCKED
-  DONE
-  ESCALATED
-}
-
-enum WorkItemPriority {
-  LOW
-  NORMAL
-  HIGH
-  URGENT
-}
-
-enum WorkflowStatus {
-  DRAFT
-  PUBLISHED
-  DISABLED
-}
-
-enum RunStatus {
-  RUNNING
-  WAITING_APPROVAL
-  WAITING_WORKFLOW
-  SUCCEEDED
-  FAILED
-  CANCELLED
-}
-
-enum NodeRunStatus {
-  RUNNING
-  SUCCEEDED
-  FAILED
-  WAITING_APPROVAL
-  WAITING_WORKFLOW
-  SKIPPED
-}
-
-enum WaitpointStatus {
-  WAITING
-  RESUMED
-  EXPIRED
-  CANCELLED
-}
-
-enum WaitpointKind {
-  APPROVAL
-  TIMER
-  EVENT
-  CALLBACK
-}
-
-enum AuditOutcome {
-  SUCCESS
-  FAILURE
-  INFO
-  BLOCKED
-}
-
-model ApplicationCase {
-  id            String      @id @default(cuid())
-  reference     String      @unique
-  routeName     String
-  stage         CaseStage   @default(ASSESSMENT)
-  mainApplicantCount Int    @default(1)
-  dependentCount Int        @default(0)
-  agreementSignedAt DateTime?
-  paymentStatus   String?
-  nextClientAction String?
-  nextAuthorityFollowUpAt DateTime?
-
-  contactId String?
-  contact   Contact?   @relation(fields: [contactId], references: [id], onDelete: SetNull)
-  companyId String?
-  company   Company?   @relation(fields: [companyId], references: [id], onDelete: SetNull)
-  ownerId   String?
-  owner     User?      @relation(fields: [ownerId], references: [id], onDelete: SetNull)
-
-  documents     CaseDocument[]
-  screeningRuns ScreeningRun[]
-  dueDiligenceProfiles DueDiligenceProfile[]
-  eligibilityAssessments EligibilityAssessment[]
-  workItems     WorkItem[]
-  workflowRuns  WorkflowRun[]
-  auditEvents   AuditEvent[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([reference])
-  @@index([routeName])
-  @@index([stage])
-  @@index([contactId])
-  @@index([companyId])
-  @@index([ownerId])
-  @@map("applicationCase")
-}
-
-model CaseDocument {
-  id           String @id @default(cuid())
-  name         String
-  documentType String
-  reviewStatus DocumentReviewStatus @default(REQUESTED)
-  files        String?
-  issuedAt     DateTime?
-  validUntil   DateTime?
-  rmComment    String?
-  reviewedAt   DateTime?
-
-  caseId String
-  case   ApplicationCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([caseId])
-  @@index([reviewStatus])
-  @@map("caseDocument")
-}
-
-model ScreeningRun {
-  id                String @id @default(cuid())
-  reference         String @unique
-  provider          String
-  providerReference String?
-  status            ScreeningRunStatus @default(QUEUED)
-  screeningType     String?
-  resultSummary     String?
-  complianceDisposition String?
-  requestedAt       DateTime?
-  completedAt       DateTime?
-
-  caseId    String?
-  case      ApplicationCase? @relation(fields: [caseId], references: [id], onDelete: SetNull)
-  contactId String?
-  contact   Contact?   @relation(fields: [contactId], references: [id], onDelete: SetNull)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([reference])
-  @@index([status])
-  @@index([caseId])
-  @@index([contactId])
-  @@map("screeningRun")
-}
-
-model DueDiligenceProfile {
-  id                String @id @default(cuid())
-  reference         String @unique
-  status            DueDiligenceStatus @default(NOT_STARTED)
-  level             DueDiligenceLevel @default(CDD)
-  riskRating        String?
-  riskRationale     String?
-  pepStatus         String?
-  sanctionsStatus   String?
-  sourceOfFunds     String?
-  sourceOfWealth    String?
-  reviewedAt        DateTime?
-  nextReviewAt      DateTime?
-  reviewDecision    String?
-  evidenceFiles     String?
-
-  contactId String?
-  contact   Contact?   @relation(fields: [contactId], references: [id], onDelete: SetNull)
-  companyId String?
-  company   Company?   @relation(fields: [companyId], references: [id], onDelete: SetNull)
-  caseId    String?
-  case      ApplicationCase? @relation(fields: [caseId], references: [id], onDelete: SetNull)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([reference])
-  @@index([status])
-  @@index([contactId])
-  @@index([companyId])
-  @@map("dueDiligenceProfile")
-}
-
-model EligibilityAssessment {
-  id                String @id @default(cuid())
-  reference         String @unique
-  routeName         String
-  status            AssessmentStatus @default(DRAFT)
-  provisionalOutcome AssessmentOutcome?
-  evidenceAvailable Boolean @default(false)
-  questionnaireNotes String?
-  rmDecision        String?
-  reviewedAt        DateTime?
-
-  caseId    String?
-  case      ApplicationCase? @relation(fields: [caseId], references: [id], onDelete: SetNull)
-  contactId String?
-  contact   Contact?   @relation(fields: [contactId], references: [id], onDelete: SetNull)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([reference])
-  @@index([status])
-  @@index([caseId])
-  @@index([contactId])
-  @@map("eligibilityAssessment")
-}
-
-model ProviderConnection {
-  id               String @id @default(cuid())
-  name             String
-  provider         String
-  status           ProviderConnectionStatus @default(DRAFT)
-  permittedPurposes String
-  dataResidency    String?
-  approvalReference String?
-  lastHealthCheckAt DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([provider])
-  @@index([status])
-  @@map("providerConnection")
-}
-
-model ServiceRoute {
-  id          String @id @default(cuid())
-  name        String
-  country     String
-  category    String
-  summary     String?
-  entryCriteria String?
-  status      RouteStatus @default(DRAFT)
-  sortOrder   Int?
-  publiclyVisible Boolean @default(true)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([country])
-  @@index([category])
-  @@index([status])
-  @@map("serviceRoute")
-}
-
-model WorkItem {
-  id           String @id @default(cuid())
-  title        String
-  status       WorkItemStatus @default(TODO)
-  priority     WorkItemPriority @default(NORMAL)
-  type         String
-  workflowRunId String?
-  nodeRunId    String?
-  requiredRole String?
-  assignedTo   String?
-  body         String?
-  dueDate      DateTime?
-  completedAt  DateTime?
-  decision     String?
-  decisionReason String?
-  decisionBy   String?
-
-  caseIdRef    String?
-  case         ApplicationCase? @relation(fields: [caseIdRef], references: [id], onDelete: SetNull)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([status])
-  @@index([priority])
-  @@index([type])
-  @@index([caseIdRef])
-  @@index([assignedTo])
-  @@map("workItem")
-}
-
-model Workflow {
-  id           String @id @default(cuid())
-  name         String
-  status       WorkflowStatus @default(DRAFT)
-  version      Int
-  triggerPieceKey String?
-  graphNodes   String?
-  graphEdges   String?
-  templateKey  String?
-  orgId        String?
-  disabled     Boolean @default(false)
-  createdBy    String?
-
-  runs WorkflowRun[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([status])
-  @@index([templateKey])
-  @@index([orgId])
-  @@map("workflow")
-}
-
-model WorkflowRun {
-  id        String @id @default(cuid())
-  runId     String @unique
-  status    RunStatus @default(RUNNING)
-  workflowId String?
-  version   Int
-  caseId    String?
-  trigger   String
-  context   String?
-  error     String?
-  startedAt DateTime
-  finishedAt DateTime?
-  attempts  Int @default(0)
-
-  workflow  Workflow?   @relation(fields: [workflowId], references: [id], onDelete: SetNull)
-  case      ApplicationCase? @relation(fields: [caseId], references: [id], onDelete: SetNull)
-
-  nodeRuns   WorkflowNodeRun[]
-  waitpoints WorkflowWaitpoint[]
-  waits      WorkflowWait[]
-  approvals  WorkflowApproval[]
-  stepResults WorkflowStepResult[]
-  eventLogs  WorkflowEventLog[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([runId])
-  @@index([status])
-  @@index([workflowId])
-  @@index([caseId])
-  @@map("workflowRun")
-}
-
-model WorkflowNodeRun {
-  id           String @id @default(cuid())
-  nodeKey      String
-  pieceKey     String
-  name         String
-  workflowRunId String
-  status       NodeRunStatus @default(RUNNING)
-  inputPreview String?
-  outputPreview String?
-  error        String?
-  attempts     Int @default(0)
-  startedAt    DateTime
-  finishedAt   DateTime?
-  approvalDecision String?
-  decisionReason String?
-  approverId   String?
-
-  workflowRun WorkflowRun @relation(fields: [workflowRunId], references: [id], onDelete: Cascade)
-  waitpoints WorkflowWaitpoint[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([workflowRunId])
-  @@index([status])
-  @@map("workflowNodeRun")
-}
-
-model WorkflowWaitpoint {
-  id             String @id @default(cuid())
-  runId          String
-  nodeRunId      String
-  kind           WaitpointKind @default(APPROVAL)
-  resumeToken    String @unique
-  eventKind      String?
-  expiresAt      DateTime
-  contextSnapshot String?
-  status         WaitpointStatus @default(WAITING)
-  resumedBy      String?
-  resumedAt      DateTime?
-  resumePayload  String?
-
-  workflowRun WorkflowRun @relation(fields: [runId], references: [id], onDelete: Cascade)
-  nodeRun     WorkflowNodeRun @relation(fields: [nodeRunId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([runId])
-  @@index([nodeRunId])
-  @@index([resumeToken])
-  @@index([status])
-  @@index([expiresAt])
-  @@map("workflowWaitpoint")
-}
-
-model WorkflowStepClaim {
-  id      String @id @default(cuid())
-  scope   String
-  key     String
-  claimedAt DateTime
-
-  @@unique([scope, key])
-  @@index([scope])
-  @@map("workflowStepClaim")
-}
-
-model AuditEvent {
-  id          String @id @default(cuid())
-  action      String
-  outcome     AuditOutcome @default(SUCCESS)
-  actor       String
-  actorId     String?
-  targetId    String?
-  targetType  String?
-  before      String?
-  after       String?
-  reason      String?
-  correlationId String?
-  occurredAt  DateTime
-
-  caseId String?
-  case   ApplicationCase? @relation(fields: [caseId], references: [id], onDelete: SetNull)
-
-  createdAt DateTime @default(now())
-
-  @@index([action])
-  @@index([outcome])
-  @@index([actor])
-  @@index([caseId])
-  @@index([correlationId])
-  @@index([occurredAt])
-  @@map("auditEvent")
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 model AppointmentType {
 	id               String   @id @default(uuid())
 	ownerUserId      String?
@@ -2561,4 +2086,199 @@ model WorkflowEventLog {
 
 	@@index([runId, createdAt])
 	@@index([kind])
+}
+
+enum WorkflowRunStatus {
+  pending
+  running
+  succeeded
+  failed
+  abandoned
+}
+
+enum WorkflowStepStatus {
+  pending
+  succeeded
+  failed
+  skipped
+}
+
+enum RoutineTriggerKind {
+  manual
+  cron
+  event
+}
+
+enum RoutineRunStatus {
+  queued
+  running
+  succeeded
+  failed
+  skipped
+}
+
+enum WebhookDeliveryStatus {
+  pending
+  processing
+  success
+  failed
+}
+
+/// Durable workflow-engine run. One row per invocation, written before the
+/// first step so a crash or redeploy always leaves a recoverable record.
+model WorkflowRun {
+  id              String            @id @default(uuid())
+  workflowName    String
+  tenantUserId    String?
+  status          WorkflowRunStatus @default(pending)
+  input           Json
+  attemptCount    Int               @default(0)
+  maxAttempts     Int               @default(3)
+  failureName     String?
+  failureMessage  String?
+  failureStack    String?
+  failureExpected Boolean           @default(false)
+  startedAt       DateTime?
+  finishedAt      DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  tenant      User?               @relation(fields: [tenantUserId], references: [id], onDelete: SetNull)
+  steps       WorkflowStepRun[]
+  waits       WorkflowWait[]
+  approvals   WorkflowApproval[]
+  stepResults WorkflowStepResult[]
+  eventLogs   WorkflowEventLog[]
+  routineRuns RoutineRun[]
+
+  @@index([workflowName, status])
+  @@index([status, createdAt])
+  @@index([tenantUserId])
+  @@map("WorkflowRun")
+}
+
+/// Per-step journal for one workflow run. A retry updates the row, so the
+/// attempt count is evidence rather than an in-memory counter.
+model WorkflowStepRun {
+  id             String             @id @default(uuid())
+  runId          String
+  stepName       String
+  status         WorkflowStepStatus @default(pending)
+  attemptCount   Int                @default(0)
+  maxRetries     Int                @default(0)
+  failureName    String?
+  failureMessage String?
+  startedAt      DateTime?
+  finishedAt     DateTime?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  run WorkflowRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([runId, stepName])
+  @@index([status])
+  @@map("WorkflowStepRun")
+}
+
+/// A saved automation: a prompt plus the schedule or event that fires it.
+model Routine {
+  id              String             @id @default(uuid())
+  ownerUserId     String?
+  name            String
+  prompt          String
+  enabled         Boolean            @default(true)
+  triggerKind     RoutineTriggerKind @default(manual)
+  cronExpression  String?
+  timezone        String             @default("UTC")
+  triggerEvents   String[]           @default([])
+  changedFields   String[]           @default([])
+  debounceSeconds Int                @default(300)
+  nextRunAt       DateTime?
+  lastRunAt       DateTime?
+  lastRunStatus   RoutineRunStatus?
+  disabledReason  String?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  owner User?        @relation(fields: [ownerUserId], references: [id], onDelete: SetNull)
+  runs  RoutineRun[]
+
+  @@index([enabled, nextRunAt])
+  @@index([ownerUserId])
+  @@index([triggerKind])
+  @@map("Routine")
+}
+
+/// One queued or executed firing of a routine.
+model RoutineRun {
+  id                 String             @id @default(uuid())
+  routineId          String
+  executedByUserId   String?
+  status             RoutineRunStatus   @default(queued)
+  triggerKind        RoutineTriggerKind
+  triggerEvent       String?
+  triggerEntityId    String?
+  triggerPayload     Json?
+  scheduledFor       DateTime
+  startedAt          DateTime?
+  finishedAt         DateTime?
+  failureReason      String?
+  workflowRunId      String?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  routine     Routine      @relation(fields: [routineId], references: [id], onDelete: Cascade)
+  executedBy  User?        @relation(fields: [executedByUserId], references: [id], onDelete: SetNull)
+  workflowRun WorkflowRun? @relation(fields: [workflowRunId], references: [id], onDelete: SetNull)
+
+  @@index([routineId, createdAt])
+  @@index([status, scheduledFor])
+  @@map("RoutineRun")
+}
+
+/// An outbound webhook subscription owned by one user.
+model Webhook {
+  id           String   @id @default(uuid())
+  ownerUserId  String?
+  url          String
+  description  String?
+  events       String[]
+  secret       String?
+  headers      Json?
+  bodyTemplate String?
+  enabled      Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  owner      User?             @relation(fields: [ownerUserId], references: [id], onDelete: SetNull)
+  deliveries WebhookDelivery[]
+
+  @@index([ownerUserId])
+  @@index([enabled])
+  @@map("Webhook")
+}
+
+/// Delivery journal for one webhook attempt, including the exact request body.
+model WebhookDelivery {
+  id              String                @id @default(uuid())
+  webhookId       String?
+  ownerUserId     String?
+  url             String
+  event           String
+  requestBody     Json
+  statusCode      Int?
+  responseMessage String?
+  attemptCount    Int                   @default(0)
+  status          WebhookDeliveryStatus @default(pending)
+  deliveredAt     DateTime?
+  createdAt       DateTime              @default(now())
+
+  webhook Webhook? @relation(fields: [webhookId], references: [id], onDelete: SetNull)
+  owner   User?    @relation(fields: [ownerUserId], references: [id], onDelete: SetNull)
+
+  @@index([webhookId])
+  @@index([ownerUserId])
+  @@index([createdAt])
+  @@index([status, createdAt])
+  @@map("WebhookDelivery")
 }

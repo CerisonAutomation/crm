@@ -23,7 +23,7 @@ export type AiConsent = { local: boolean; cloud: boolean; version: string };
 const DEFAULTS: AiConsent = { local: false, cloud: false, version: AI_CONSENT_VERSION };
 
 export function getAiConsent(): AiConsent {
-  if (typeof window === "undefined") return { ...DEFAULTS };
+  if (globalThis.window === undefined) return { ...DEFAULTS };
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return { ...DEFAULTS };
@@ -52,7 +52,7 @@ export function setAiConsent(next: Partial<Pick<AiConsent, "local" | "cloud">>):
 
 /** True once the user has made ANY choice (granted or denied either switch). */
 export function hasConsented(): boolean {
-  if (typeof window === "undefined") return false;
+  if (globalThis.window === undefined) return false;
   try {
     return window.localStorage.getItem(STORAGE_KEY) !== null;
   } catch {

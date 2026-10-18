@@ -15,7 +15,7 @@ import { useEffect } from "react";
 
 export function NativeShell() {
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (globalThis.window === undefined) return;
     let cancelled = false;
     // Removal callbacks, registered the moment each resource exists so a
     // teardown that races the async setup still releases everything.

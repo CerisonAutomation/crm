@@ -5,13 +5,13 @@
 
 import { Module } from "@nestjs/common";
 import { DatabaseModule } from "../database/database.module";
+import { HardeningController } from "./hardening.controller";
 import {
 	PortalAccessService,
 	SuppressionService,
 	WorkspaceDomainsService,
 	WorkspaceSecretsService,
 } from "./hardening-services";
-import { HardeningController } from "./hardening.controller";
 
 @Module({
 	imports: [DatabaseModule],

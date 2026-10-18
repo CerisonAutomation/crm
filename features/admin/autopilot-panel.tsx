@@ -88,7 +88,7 @@ export function AutopilotPanel() {
     void load();
   }, [load]);
 
-  const absoluteUrl = (path: string) => (typeof window === "undefined" ? path : `${window.location.origin}${path}`);
+  const absoluteUrl = (path: string) => (globalThis.window === undefined ? path : `${window.location.origin}${path}`);
 
   async function scan() {
     setScanning(true);

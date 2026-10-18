@@ -25,8 +25,7 @@ export async function GET(req: NextRequest) {
                 { category: { contains: q, mode: "insensitive" } },
                 { manufacturer: { contains: q, mode: "insensitive" } },
               ],
-            }
-          : {}),
+            } : undefined),
       },
       orderBy: { createdAt: "desc" },
       take: 201,

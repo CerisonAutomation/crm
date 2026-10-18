@@ -9,9 +9,9 @@
  * tenants. `resolveEffectiveSoul` is pure and chain-safe (cycle guard).
  */
 
-import { Injectable } from "@nestjs/common";
 import { randomUUID } from "node:crypto";
 import type { Db, Prisma } from "@crm/db";
+import { Injectable } from "@nestjs/common";
 import { InjectDatabase } from "../database/database.constants";
 import { WorkflowNonRetryableError } from "../workflows/workflow-errors";
 
@@ -79,10 +79,14 @@ export function resolveEffectiveSoul(
 
 	while (cursor) {
 		if (seen.has(cursor.id)) {
-			throw new WorkflowNonRetryableError(`Soul inheritance cycle detected at ${cursor.id}`);
+			throw new WorkflowNonRetryableError(
+				`Soul inheritance cycle detected at ${cursor.id}`,
+			);
 		}
 		if (chain.length >= MAX_CHAIN) {
-			throw new WorkflowNonRetryableError("Soul inheritance chain exceeds maximum depth");
+			throw new WorkflowNonRetryableError(
+				"Soul inheritance chain exceeds maximum depth",
+			);
 		}
 		seen.add(cursor.id);
 		chain.push(cursor);
@@ -123,18 +127,25 @@ export function resolveEffectiveSoul(
 export class SoulService {
 	constructor(@InjectDatabase() private readonly db: Db) {}
 
-	async create(ownerUserId: string, input: {
-		name: string;
-		parentId?: string | null;
-		labels?: Record<string, string>;
-		tone?: string;
-		positioning?: string | null;
-		branding?: Record<string, unknown>;
-	}) {
-		if (input.name.trim().length === 0) throw new WorkflowNonRetryableError("soul name is required");
+	async create(
+		ownerUserId: string,
+		input: {
+			name: string;
+			parentId?: string | null;
+			labels?: Record<string, string>;
+			tone?: string;
+			positioning?: string | null;
+			branding?: Record<string, unknown>;
+		},
+	) {
+		if (input.name.trim().length === 0)
+			throw new WorkflowNonRetryableError("soul name is required");
 		if (input.parentId) {
-			const parent = await this.db.soulProfile.findFirst({ where: { id: input.parentId, ownerUserId } });
-			if (!parent) throw new WorkflowNonRetryableError(`No parent soul ${input.parentId}`);
+			const parent = await this.db.soulProfile.findFirst({
+				where: { id: input.parentId, ownerUserId },
+			});
+			if (!parent)
+				throw new WorkflowNonRetryableError(`No parent soul ${input.parentId}`);
 		}
 		return this.db.soulProfile.create({
 			data: {
@@ -151,7 +162,10 @@ export class SoulService {
 	}
 
 	async list(ownerUserId: string) {
-		return this.db.soulProfile.findMany({ where: { ownerUserId }, orderBy: { createdAt: "asc" } });
+		return this.db.soulProfile.findMany({
+			where: { ownerUserId },
+			orderBy: { createdAt: "asc" },
+		});
 	}
 
 	/**

@@ -202,7 +202,7 @@ export function useChatCallSettings() {
 export type SpeechEngine = "whisper" | "web-speech" | "none";
 
 export function detectSpeechEngine(): SpeechEngine {
-  if (typeof window === "undefined") return "none";
+  if (globalThis.window === undefined) return "none";
   const w = window as unknown as {
     SpeechRecognition?: new () => unknown;
     webkitSpeechRecognition?: new () => unknown;

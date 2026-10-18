@@ -143,7 +143,7 @@ async function unreadCount(teamId: string, userId: string, watermark: Date | nul
     where: {
       teamId,
       authorId: { not: userId },
-      ...(watermark ? { createdAt: { gt: watermark } } : {}),
+      ...(watermark ? { createdAt: { gt: watermark } } : undefined),
     },
   });
 }
@@ -525,7 +525,7 @@ export async function listTeamMessages(
   const after = opts.after ? new Date(opts.after) : null;
   const where = {
     teamId,
-    ...(after && !Number.isNaN(after.getTime()) ? { createdAt: { gt: after } } : {}),
+    ...(after && !Number.isNaN(after.getTime()) ? { createdAt: { gt: after } } : undefined),
   };
   const rows = await db.teamMessage.findMany({
     where,

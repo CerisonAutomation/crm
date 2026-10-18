@@ -20,9 +20,9 @@ export async function GET(req: NextRequest) {
     // Every staff role — ADMIN included — is scoped to the caller's organisation;
     // an empty filter would have returned other tenants' deadline items.
     const where = {
-      ...(kind ? { kind } : {}),
-      ...(status ? { status } : {}),
-      ...(caseId ? { caseId } : {}),
+      ...(kind ? { kind } : undefined),
+      ...(status ? { status } : undefined),
+      ...(caseId ? { caseId } : undefined),
       ...(isStaff ? { case: { orgId: ctx.orgId } } : { case: { clientId: ctx.userId } }),
     };
     const reminders = await db.reminder.findMany({

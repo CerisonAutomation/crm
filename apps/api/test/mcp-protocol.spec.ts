@@ -1,19 +1,19 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import { z } from "zod";
 import {
+	executeMcpTool,
+	type McpTool,
+	mcpFailure,
+	mcpValidationFailure,
+} from "../src/mcp/mcp.types";
+import {
+	type JsonRpcRequest,
 	MCP_PROTOCOL_VERSION,
 	MCP_SERVER_INFO,
 	McpServerService,
 	resetMcpSessions,
-	type JsonRpcRequest,
 } from "../src/mcp/mcp-server.service";
 import { McpToolsService } from "../src/mcp/mcp-tools.service";
-import {
-	executeMcpTool,
-	mcpFailure,
-	mcpValidationFailure,
-	type McpTool,
-} from "../src/mcp/mcp.types";
 
 const echoTool: McpTool = {
 	name: "echo",
@@ -46,7 +46,16 @@ const failingTool: McpTool = {
 
 class FakeToolsService extends McpToolsService {
 	constructor() {
-		super(null as never, null as never, null as never, null as never);
+		super(
+			null as never,
+			null as never,
+			null as never,
+			null as never,
+			null as never,
+			null as never,
+			null as never,
+			null as never,
+		);
 	}
 
 	override catalog(): McpTool[] {
@@ -54,7 +63,11 @@ class FakeToolsService extends McpToolsService {
 	}
 }
 
-function request(method: string, params?: Record<string, unknown>, id: string | number = 1): JsonRpcRequest {
+function request(
+	method: string,
+	params?: Record<string, unknown>,
+	id: string | number = 1,
+): JsonRpcRequest {
 	return { jsonrpc: "2.0", id, method, ...(params ? { params } : {}) };
 }
 
@@ -71,7 +84,9 @@ describe("the MCP server protocol", () => {
 		expect(sessionId).toBeTruthy();
 		expect(response?.result?.protocolVersion).toBe(MCP_PROTOCOL_VERSION);
 		expect(response?.result?.serverInfo).toEqual(MCP_SERVER_INFO);
-		expect(response?.result?.capabilities).toEqual({ tools: { listChanged: false } });
+		expect(response?.result?.capabilities).toEqual({
+			tools: { listChanged: false },
+		});
 	});
 
 	it("requires a session for every method after initialize", async () => {
@@ -82,8 +97,13 @@ describe("the MCP server protocol", () => {
 
 	it("lists tools with JSON Schema inputs", async () => {
 		const init = await server.handle(request("initialize"));
-		const { response } = await server.handle(request("tools/list"), init.sessionId);
-		const tools = (response?.result?.tools ?? []) as Array<Record<string, unknown>>;
+		const { response } = await server.handle(
+			request("tools/list"),
+			init.sessionId,
+		);
+		const tools = (response?.result?.tools ?? []) as Array<
+			Record<string, unknown>
+		>;
 		expect(tools.length).toBe(3);
 		const echo = tools.find((tool) => tool.name === "echo");
 		expect(echo?.title).toBe("Echo");
@@ -100,7 +120,10 @@ describe("the MCP server protocol", () => {
 		);
 		expect(response?.result?.isError).toBe(false);
 		expect(response?.result?.structuredContent).toEqual({ message: "hi" });
-		const content = (response?.result?.content ?? []) as Array<{ type: string; text: string }>;
+		const content = (response?.result?.content ?? []) as Array<{
+			type: string;
+			text: string;
+		}>;
 		expect(content[0]).toEqual({ type: "text", text: "echoed" });
 	});
 
@@ -112,7 +135,9 @@ describe("the MCP server protocol", () => {
 		);
 		expect(response?.result?.isError).toBe(true);
 		expect(response?.error).toBeUndefined();
-		const content = (response?.result?.content ?? []) as Array<{ text: string }>;
+		const content = (response?.result?.content ?? []) as Array<{
+			text: string;
+		}>;
 		expect(content[0]?.text).toBe("exploded");
 	});
 
@@ -137,15 +162,22 @@ describe("the MCP server protocol", () => {
 			init.sessionId,
 		);
 		expect(response?.result?.isError).toBe(true);
-		const structured = response?.result?.structuredContent as { failure: { kind: string } };
+		const structured = response?.result?.structuredContent as {
+			failure: { kind: string };
+		};
 		expect(structured.failure.kind).toBe("validation");
-		const content = (response?.result?.content ?? []) as Array<{ text: string }>;
+		const content = (response?.result?.content ?? []) as Array<{
+			text: string;
+		}>;
 		expect(content[0]?.text).toContain("Validation error:");
 	});
 
 	it("rejects unknown methods and unknown tools with JSON-RPC errors", async () => {
 		const init = await server.handle(request("initialize"));
-		const unknownMethod = await server.handle(request("resources/list"), init.sessionId);
+		const unknownMethod = await server.handle(
+			request("resources/list"),
+			init.sessionId,
+		);
 		expect(unknownMethod.response?.error?.code).toBe(-32601);
 
 		const unknownTool = await server.handle(
@@ -160,7 +192,11 @@ describe("the MCP server protocol", () => {
 		const pong = await server.handle(request("ping"), init.sessionId);
 		expect(pong.response?.result).toEqual({});
 
-		const malformed = await server.handle({ jsonrpc: "1.0", id: 9, method: "ping" } as unknown as JsonRpcRequest);
+		const malformed = await server.handle({
+			jsonrpc: "1.0",
+			id: 9,
+			method: "ping",
+		} as unknown as JsonRpcRequest);
 		expect(malformed.response?.error?.code).toBe(-32600);
 	});
 

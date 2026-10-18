@@ -8,22 +8,22 @@
  * lock before touching a provider API.
  */
 
-import { Inject, Injectable, Logger, NotFoundException, Optional } from "@nestjs/common";
 import { randomUUID } from "node:crypto";
 import type { Db, Prisma } from "@crm/db";
+import {
+	Inject,
+	Injectable,
+	Logger,
+	NotFoundException,
+	Optional,
+} from "@nestjs/common";
 import { InjectDatabase } from "../database/database.constants";
+import { EventDispatcherService } from "../events/event-dispatcher.service";
+import { SuppressionService } from "../hardening/hardening-services";
 import { RoutinesService } from "../routines/routines.service";
 import { WebhooksService } from "../webhooks/webhooks.service";
 import { SendClaimService } from "../workflows/send-claim.service";
-import { SuppressionService } from "../hardening/hardening-services";
-import { EventDispatcherService } from "../events/event-dispatcher.service";
-import { isRedelivery, messageFingerprint, type FingerprintInput } from "./message-cleaner";
 import { WorkflowNonRetryableError } from "../workflows/workflow-errors";
-import { IntegrationRegistryService, ProviderEnvAdapter } from "./integration-registry.service";
-import {
-	buildDefaultProviders,
-	type FetchLike,
-} from "./channel-providers";
 import type {
 	ChannelProvider,
 	InboundChannelMessage,
@@ -31,6 +31,16 @@ import type {
 	ProviderAuthResult,
 	SendResult,
 } from "./channel-contracts";
+import { buildDefaultProviders, type FetchLike } from "./channel-providers";
+import {
+	IntegrationRegistryService,
+	ProviderEnvAdapter,
+} from "./integration-registry.service";
+import {
+	type FingerprintInput,
+	isRedelivery,
+	messageFingerprint,
+} from "./message-cleaner";
 
 const META_APP_ENV = ["META_APP_ID", "META_APP_SECRET"];
 const LINKEDIN_ENV = ["LINKEDIN_CLIENT_ID", "LINKEDIN_CLIENT_SECRET"];
@@ -54,7 +64,13 @@ export class ChannelsService {
 		for (const id of this.providers.keys()) {
 			const requiredEnv = id === "linkedin" ? LINKEDIN_ENV : META_APP_ENV;
 			try {
-				this.registry.register(new ProviderEnvAdapter(id, id === "linkedin" ? "tier1" : "tier1", requiredEnv));
+				this.registry.register(
+					new ProviderEnvAdapter(
+						id,
+						id === "linkedin" ? "tier1" : "tier1",
+						requiredEnv,
+					),
+				);
 			} catch {
 				// Registry may already hold the adapter (hot reload / re-init).
 			}
@@ -63,7 +79,10 @@ export class ChannelsService {
 
 	getProvider(providerId: string): ChannelProvider {
 		const provider = this.providers.get(providerId);
-		if (!provider) throw new WorkflowNonRetryableError(`Unknown channel provider ${providerId}`);
+		if (!provider)
+			throw new WorkflowNonRetryableError(
+				`Unknown channel provider ${providerId}`,
+			);
 		return provider;
 	}
 
@@ -89,7 +108,10 @@ export class ChannelsService {
 			metadata: auth.metadata as Prisma.InputJsonValue,
 		};
 		if (existing) {
-			return this.db.connectedAccount.update({ where: { id: existing.id }, data });
+			return this.db.connectedAccount.update({
+				where: { id: existing.id },
+				data,
+			});
 		}
 		return this.db.connectedAccount.create({
 			data: {
@@ -129,12 +151,21 @@ export class ChannelsService {
 	 * Idotent ingestion: per-message upsert on (provider, externalId). Returns
 	 * the number of NEW messages that were persisted and dispatched.
 	 */
-	async ingest(ownerUserId: string, messages: InboundChannelMessage[]): Promise<number> {
+	async ingest(
+		ownerUserId: string,
+		messages: InboundChannelMessage[],
+	): Promise<number> {
 		let persisted = 0;
-		const recentFingerprints: Array<{ fingerprint: string; occurredAt: Date }> = [];
+		const recentFingerprints: Array<{ fingerprint: string; occurredAt: Date }> =
+			[];
 		for (const message of messages) {
 			const existing = await this.db.channelMessage.findUnique({
-				where: { provider_externalId: { provider: message.provider, externalId: message.externalId } },
+				where: {
+					provider_externalId: {
+						provider: message.provider,
+						externalId: message.externalId,
+					},
+				},
 			});
 			if (existing) continue;
 
@@ -149,8 +180,9 @@ export class ChannelsService {
 			};
 			const fingerprint = messageFingerprint(fingerprintInput);
 			const redelivery =
-				recentFingerprints.some((seen) => isRedelivery(fingerprintInput, seen)) ||
-				(await this.recentDuplicate(fingerprint, message.occurredAt));
+				recentFingerprints.some((seen) =>
+					isRedelivery(fingerprintInput, seen),
+				) || (await this.recentDuplicate(fingerprint, message.occurredAt));
 			if (redelivery) continue;
 			recentFingerprints.push({ fingerprint, occurredAt: message.occurredAt });
 
@@ -206,7 +238,10 @@ export class ChannelsService {
 		workflowRunId?: string,
 	): Promise<{ outcome: "executed" | "skipped"; result: SendResult | null }> {
 		const provider = this.getProvider(providerId);
-		const suppressed = await this.suppression.isSuppressed(providerId, message.recipientHandle);
+		const suppressed = await this.suppression.isSuppressed(
+			providerId,
+			message.recipientHandle,
+		);
 		if (suppressed) {
 			throw new WorkflowNonRetryableError(
 				`Recipient ${message.recipientHandle} is suppressed on ${providerId}`,
@@ -217,12 +252,20 @@ export class ChannelsService {
 				ownerUserId,
 				provider: providerId,
 				status: "active",
-				...(message.metadata?.handle ? { handle: String(message.metadata.handle) } : {}),
+				...(message.metadata?.handle
+					? { handle: String(message.metadata.handle) }
+					: {}),
 			},
 			orderBy: { createdAt: "desc" },
 		});
-		if (!account) throw new NotFoundException(`No active ${providerId} account for this user`);
-		if (!account.accessToken) throw new WorkflowNonRetryableError(`Account ${account.id} has no access token`);
+		if (!account)
+			throw new NotFoundException(
+				`No active ${providerId} account for this user`,
+			);
+		if (!account.accessToken)
+			throw new WorkflowNonRetryableError(
+				`Account ${account.id} has no access token`,
+			);
 
 		const claim = await this.sendClaims.runWithClaim(
 			{
@@ -253,7 +296,10 @@ export class ChannelsService {
 						senderHandle: account.handle,
 						recipientHandle: message.recipientHandle,
 						body: message.body,
-						media: (message.mediaUrls ?? []).map((url) => ({ type: "link", url })) as unknown as Prisma.InputJsonValue,
+						media: (message.mediaUrls ?? []).map((url) => ({
+							type: "link",
+							url,
+						})) as unknown as Prisma.InputJsonValue,
 						raw: sent.raw as Prisma.InputJsonValue,
 						occurredAt: new Date(),
 						processedAt: new Date(),
@@ -264,9 +310,12 @@ export class ChannelsService {
 			(value) => value.externalMessageId,
 		);
 
-		if (claim.outcome === "skipped") return { outcome: "skipped", result: null };
+		if (claim.outcome === "skipped")
+			return { outcome: "skipped", result: null };
 		if (claim.outcome === "failed") {
-			throw claim.error instanceof Error ? claim.error : new Error(String(claim.error));
+			throw claim.error instanceof Error
+				? claim.error
+				: new Error(String(claim.error));
 		}
 		return { outcome: "executed", result: claim.value };
 	}
@@ -284,8 +333,12 @@ export class ChannelsService {
 				displayName: provider.displayName,
 				scopes: provider.scopes,
 			})),
-			adapters: this.registry.getAll().map((descriptor) => ({ id: descriptor.id, tier: descriptor.tier })),
-			configured: this.registry.getConfigured().map((descriptor) => descriptor.id),
+			adapters: this.registry
+				.getAll()
+				.map((descriptor) => ({ id: descriptor.id, tier: descriptor.tier })),
+			configured: this.registry
+				.getConfigured()
+				.map((descriptor) => descriptor.id),
 		};
 	}
 
@@ -295,12 +348,24 @@ export class ChannelsService {
 	}
 
 	/** True when an identical content fingerprint landed within the dedupe window. */
-	private async recentDuplicate(fingerprint: string, occurredAt: Date): Promise<boolean> {
+	private async recentDuplicate(
+		fingerprint: string,
+		occurredAt: Date,
+	): Promise<boolean> {
 		const candidates = await this.db.channelMessage.findMany({
 			where: {
-				occurredAt: { gte: new Date(occurredAt.getTime() - 60_000), lte: new Date(occurredAt.getTime() + 60_000) },
+				occurredAt: {
+					gte: new Date(occurredAt.getTime() - 60_000),
+					lte: new Date(occurredAt.getTime() + 60_000),
+				},
 			},
-			select: { provider: true, threadId: true, senderHandle: true, body: true, occurredAt: true },
+			select: {
+				provider: true,
+				threadId: true,
+				senderHandle: true,
+				body: true,
+				occurredAt: true,
+			},
 			take: 25,
 		});
 		return candidates.some((row) =>
@@ -318,7 +383,10 @@ export class ChannelsService {
 	}
 
 	/** Resolve the owner user behind a business handle for inbound routing. */
-	async listAccountsByHandle(provider: string, handle: string): Promise<string | null> {
+	async listAccountsByHandle(
+		provider: string,
+		handle: string,
+	): Promise<string | null> {
 		const account = await this.db.connectedAccount.findFirst({
 			where: { provider, handle },
 			select: { ownerUserId: true },

@@ -6,17 +6,22 @@
  * reporting live in one place (the workflow engine).
  */
 
-import { Injectable } from "@nestjs/common";
-import { InjectDatabase } from "../database/database.constants";
 import { randomUUID } from "node:crypto";
 import type { Db } from "@crm/db";
-import { WorkflowRegistry } from "../workflows/workflow-registry.service";
-import { WorkflowRunner } from "../workflows/workflow-runner.service";
+import { Injectable } from "@nestjs/common";
+import { InjectDatabase } from "../database/database.constants";
 import {
 	buildDeliverWebhookWorkflow,
 	type DeliverWebhookWorkflow,
 	type DeliverWebhookWorkflowPayload,
 } from "../workflows/deliver-webhook.workflow";
+import { WorkflowNonRetryableError } from "../workflows/workflow-errors";
+import { WorkflowRegistry } from "../workflows/workflow-registry.service";
+import { WorkflowRunner } from "../workflows/workflow-runner.service";
+import {
+	isRenderableWebhookBodyTemplate,
+	WEBHOOK_BODY_TEMPLATE_MAX_CHARS,
+} from "./webhook-body-template";
 import { WebhookDeliveryService } from "./webhook-delivery.service";
 import {
 	buildWebhookEventEnvelope,
@@ -25,14 +30,9 @@ import {
 	type WebhookEventName,
 } from "./webhook-events";
 import {
-	isRenderableWebhookBodyTemplate,
-	WEBHOOK_BODY_TEMPLATE_MAX_CHARS,
-} from "./webhook-body-template";
-import {
-	validateWebhookHeaders,
 	allowsCredentialedHeaders,
+	validateWebhookHeaders,
 } from "./webhook-headers";
-import { WorkflowNonRetryableError } from "../workflows/workflow-errors";
 
 export type WebhookInput = {
 	url: string;
@@ -89,9 +89,13 @@ export class WebhooksService {
 			}
 		}
 
-		const unknownEvents = input.events.filter((event) => !isWebhookEventName(event));
-		if (input.events.length === 0) problems.push("subscribe to at least one event");
-		if (unknownEvents.length > 0) problems.push(`unknown events: ${unknownEvents.join(", ")}`);
+		const unknownEvents = input.events.filter(
+			(event) => !isWebhookEventName(event),
+		);
+		if (input.events.length === 0)
+			problems.push("subscribe to at least one event");
+		if (unknownEvents.length > 0)
+			problems.push(`unknown events: ${unknownEvents.join(", ")}`);
 
 		if (input.headers) {
 			for (const issue of validateWebhookHeaders(input.headers)) {
@@ -102,7 +106,9 @@ export class WebhooksService {
 				!allowsCredentialedHeaders(input.url) &&
 				input.url.trim().length > 0
 			) {
-				problems.push("custom headers require an https url or a loopback http url");
+				problems.push(
+					"custom headers require an https url or a loopback http url",
+				);
 			}
 		}
 
@@ -117,9 +123,13 @@ export class WebhooksService {
 		return problems;
 	}
 
-	async create(ownerUserId: string, input: WebhookInput): Promise<WebhookRecord> {
+	async create(
+		ownerUserId: string,
+		input: WebhookInput,
+	): Promise<WebhookRecord> {
 		const problems = WebhooksService.validateInput(input);
-		if (problems.length > 0) throw new WorkflowNonRetryableError(problems.join("; "));
+		if (problems.length > 0)
+			throw new WorkflowNonRetryableError(problems.join("; "));
 
 		const created = await this.db.webhook.create({
 			data: {
@@ -139,7 +149,8 @@ export class WebhooksService {
 
 	async update(id: string, input: WebhookInput): Promise<WebhookRecord> {
 		const problems = WebhooksService.validateInput(input);
-		if (problems.length > 0) throw new WorkflowNonRetryableError(problems.join("; "));
+		if (problems.length > 0)
+			throw new WorkflowNonRetryableError(problems.join("; "));
 
 		const updated = await this.db.webhook.update({
 			where: { id },
@@ -195,7 +206,12 @@ export class WebhooksService {
 			where: { enabled: true, ownerUserId, events: { has: event } },
 		});
 
-		const envelope = buildWebhookEventEnvelope(event, entityId, payload, userId);
+		const envelope = buildWebhookEventEnvelope(
+			event,
+			entityId,
+			payload,
+			userId,
+		);
 		const deliveryIds: string[] = [];
 
 		for (const webhook of subscribers) {
@@ -243,7 +259,9 @@ export class WebhooksService {
 		updatedAt: Date;
 	}): WebhookRecord {
 		const headers =
-			row.headers && typeof row.headers === "object" && !Array.isArray(row.headers)
+			row.headers &&
+			typeof row.headers === "object" &&
+			!Array.isArray(row.headers)
 				? (row.headers as Record<string, string>)
 				: {};
 		return {

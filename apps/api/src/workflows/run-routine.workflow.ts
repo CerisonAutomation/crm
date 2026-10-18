@@ -7,14 +7,14 @@
  * failures end the workflow quietly, unexpected ones are reported and rethrown.
  */
 
+import { reportFailure } from "./capture-failure";
 import {
 	isExpectedError,
+	toWorkflowFailure,
 	WorkflowNonRetryableError,
 	type WorkflowTenant,
 } from "./workflow-errors";
 import type { StepExecutor, WorkflowRunner } from "./workflow-runner.service";
-import { reportFailure } from "./capture-failure";
-import { toWorkflowFailure } from "./workflow-errors";
 
 const WORKFLOW_NAME = "run-routine";
 const ROUTINE_DID_NOT_START = "Routine run did not start";
@@ -29,19 +29,30 @@ export type RoutineStartOutcome = "started" | "ownerInactive" | "startFailed";
 
 export type RunRoutinePort = {
 	/** Starts the run and dispatches its body (agent turn / automation). */
-	startRoutineRun(input: { routineRunId: string; ownerUserId: string | null }): Promise<void>;
-	failRoutineRun(input: { routineRunId: string; reason: string }): Promise<void>;
+	startRoutineRun(input: {
+		routineRunId: string;
+		ownerUserId: string | null;
+	}): Promise<void>;
+	failRoutineRun(input: {
+		routineRunId: string;
+		reason: string;
+	}): Promise<void>;
 };
 
 export function classifyStartFailure(error: unknown): RoutineStartOutcome {
 	const message = error instanceof Error ? error.message : String(error);
-	return message.toLowerCase().includes("inactive") ? "ownerInactive" : "startFailed";
+	return message.toLowerCase().includes("inactive")
+		? "ownerInactive"
+		: "startFailed";
 }
 
 export function buildRunRoutineWorkflow(port: RunRoutinePort) {
 	return {
 		name: WORKFLOW_NAME,
-		async handler(payload: RunRoutineWorkflowPayload, step: StepExecutor): Promise<void> {
+		async handler(
+			payload: RunRoutineWorkflowPayload,
+			step: StepExecutor,
+		): Promise<void> {
 			const { tenant } = payload;
 
 			try {
@@ -64,7 +75,10 @@ export function buildRunRoutineWorkflow(port: RunRoutinePort) {
 					}
 				});
 			} catch (err) {
-				if (err instanceof WorkflowNonRetryableError && err.message === ROUTINE_DID_NOT_START) {
+				if (
+					err instanceof WorkflowNonRetryableError &&
+					err.message === ROUTINE_DID_NOT_START
+				) {
 					return;
 				}
 				await reportFailure(WORKFLOW_NAME, toWorkflowFailure(err), tenant);

@@ -53,8 +53,8 @@ export async function getProviderReceipts(orgId: string, filters?: {
   return db.providerReceipt.findMany({
     where: {
       orgId,
-      ...(filters?.provider ? { provider: filters.provider } : {}),
-      ...(filters?.status ? { status: filters.status } : {}),
+      ...(filters?.provider ? { provider: filters.provider } : undefined),
+      ...(filters?.status ? { status: filters.status } : undefined),
     },
     orderBy: { createdAt: "desc" },
   });
@@ -66,8 +66,7 @@ export async function updateProviderReceipt(id: string, input: UpdateProviderRec
     data: {
       ...input,
       ...(input.status === "SUCCEEDED" || input.status === "FAILED" || input.status === "TIMEOUT"
-        ? { completedAt: new Date() }
-        : {}),
+        ? { completedAt: new Date() } : undefined),
     },
   });
 }

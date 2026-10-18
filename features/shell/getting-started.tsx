@@ -67,7 +67,7 @@ export function GettingStarted({ role, width = "wide", onOpenAdminAutomation }: 
     // Lazy init — this component only mounts client-side (session-gated), so a
     // direct localStorage read is safe and avoids a post-mount flash.
     try {
-      if (typeof window === "undefined") return false;
+      if (globalThis.window === undefined) return false;
       return window.localStorage.getItem(dismissKey(role)) === "1";
     } catch {
       return false;

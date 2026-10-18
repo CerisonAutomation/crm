@@ -49,8 +49,8 @@ export async function getAttachments(orgId: string, filters?: {
     return await db.attachment.findMany({
       where: {
         orgId,
-        ...(filters?.caseId ? { caseId: filters.caseId } : {}),
-        ...(filters?.messageId ? { messageId: filters.messageId } : {}),
+        ...(filters?.caseId ? { caseId: filters.caseId } : undefined),
+        ...(filters?.messageId ? { messageId: filters.messageId } : undefined),
       },
       orderBy: { createdAt: "desc" },
     });

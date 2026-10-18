@@ -13,8 +13,15 @@ export function signWebhookPayload(secret: string, rawBody: string): string {
 	return createHmac("sha256", secret).update(rawBody, "utf8").digest("hex");
 }
 
-export function verifyWebhookSignature(secret: string, rawBody: string, signature: string): boolean {
+export function verifyWebhookSignature(
+	secret: string,
+	rawBody: string,
+	signature: string,
+): boolean {
 	const expected = signWebhookPayload(secret, rawBody);
 	if (expected.length !== signature.length) return false;
-	return timingSafeEqual(Buffer.from(expected, "utf8"), Buffer.from(signature, "utf8"));
+	return timingSafeEqual(
+		Buffer.from(expected, "utf8"),
+		Buffer.from(signature, "utf8"),
+	);
 }

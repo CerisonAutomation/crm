@@ -6,8 +6,8 @@
 import { Module } from "@nestjs/common";
 import { DatabaseModule } from "../database/database.module";
 import { EventsModule } from "../events/events.module";
-import { AgentGovernanceService } from "./agent-governance.service";
 import { AgentGovernanceController } from "./agent-governance.controller";
+import { AgentGovernanceService } from "./agent-governance.service";
 
 @Module({
 	imports: [DatabaseModule, EventsModule],

@@ -5,15 +5,13 @@ import { db } from "@/lib/db";
 import { DomainError } from "@/lib/domain/states";
 
 export type CreateWorkItemInput = {
+  /** Owning organisation — every work item belongs to exactly one tenant. */
+  orgId: string;
   title: string;
-  type: string;
   priority?: string;
-  requiredRole?: string;
   assignedTo?: string;
   caseId?: string;
-  workflowRunId?: string;
-  nodeRunId?: string;
-  body?: string | null;
+  description?: string | null;
   dueDate?: Date | null;
 };
 
@@ -21,10 +19,8 @@ export type UpdateWorkItemInput = {
   title?: string;
   status?: string;
   priority?: string;
-  type?: string;
-  requiredRole?: string;
   assignedTo?: string;
-  body?: string | null;
+  description?: string | null;
   dueDate?: Date | null;
   decision?: string | null;
   decisionReason?: string | null;
@@ -39,24 +35,22 @@ export async function listWorkItems(opts?: {
   const where: Record<string, unknown> = {};
   if (opts?.status) where.status = opts.status;
   if (opts?.priority) where.priority = opts.priority;
-  if (opts?.type) where.type = opts.type;
-  if (opts?.caseId) where.caseIdRef = opts.caseId;
-  if (opts?.assignedTo) where.assignedTo = opts.assignedTo;
-  if (opts?.requiredRole) where.requiredRole = opts.requiredRole;
+  if (opts?.caseId) where.caseId = opts.caseId;
+  if (opts?.assignedTo) where.assigneeId = opts.assignedTo;
 
   return db.workItem.findMany({
     where,
     orderBy: [{ priority: "asc" }, { createdAt: "asc" }],
     take: opts?.limit ?? 50,
     cursor: opts?.cursor ? { id: opts.cursor } : undefined,
-    include: { case: { select: { id: true, reference: true, stage: true } } },
+    include: { case: { select: { id: true, reference: true, status: true } } },
   });
 }
 
 export async function getWorkItem(id: string) {
   const w = await db.workItem.findUnique({
     where: { id },
-    include: { case: { select: { id: true, reference: true, stage: true } } },
+    include: { case: { select: { id: true, reference: true, status: true } } },
   });
   if (!w) throw new DomainError("Work item not found", 404);
   return w;
@@ -65,14 +59,12 @@ export async function getWorkItem(id: string) {
 export async function createWorkItem(input: CreateWorkItemInput) {
   return db.workItem.create({
     data: {
-      title: input.title, type: input.type,
-      priority: (input.priority ?? "NORMAL") as any,
-      requiredRole: input.requiredRole ?? null,
-      assignedTo: input.assignedTo ?? null,
-      caseIdRef: input.caseId ?? null,
-      workflowRunId: input.workflowRunId ?? null,
-      nodeRunId: input.nodeRunId ?? null,
-      body: input.body ?? null,
+      orgId: input.orgId,
+      title: input.title,
+      priority: input.priority ?? "MEDIUM",
+      assigneeId: input.assignedTo ?? null,
+      caseId: input.caseId ?? null,
+      description: input.description ?? "",
       dueDate: input.dueDate ?? null,
     },
     include: { case: { select: { id: true, reference: true } } },
@@ -86,11 +78,9 @@ export async function updateWorkItem(id: string, input: UpdateWorkItemInput) {
   const data: Record<string, unknown> = {};
   if (input.title !== undefined) data.title = input.title;
   if (input.status !== undefined) data.status = input.status as any;
-  if (input.priority !== undefined) data.priority = input.priority as any;
-  if (input.type !== undefined) data.type = input.type;
-  if (input.requiredRole !== undefined) data.requiredRole = input.requiredRole;
-  if (input.assignedTo !== undefined) data.assignedTo = input.assignedTo;
-  if (input.body !== undefined) data.body = input.body;
+  if (input.priority !== undefined) data.priority = input.priority;
+  if (input.assignedTo !== undefined) data.assigneeId = input.assignedTo;
+  if (input.description !== undefined) data.description = input.description;
   if (input.dueDate !== undefined) data.dueDate = input.dueDate;
   if (input.decision !== undefined) data.decision = input.decision;
   if (input.decisionReason !== undefined) data.decisionReason = input.decisionReason;

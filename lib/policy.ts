@@ -35,7 +35,7 @@ const getSnapshot = () => state;
 const getServerSnapshot = () => INITIAL;
 
 function ensureFetch() {
-  if (started || typeof window === "undefined") return;
+  if (started || globalThis.window === undefined) return;
   started = true;
   fetch("/api/policy", { credentials: "same-origin" })
     .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))

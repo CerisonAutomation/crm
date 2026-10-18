@@ -26,8 +26,7 @@ export async function GET(req: NextRequest) {
                 { leadsource: { contains: q, mode: "insensitive" } },
                 { stage: { contains: q, mode: "insensitive" } },
               ],
-            }
-          : {}),
+            } : undefined),
       },
       orderBy: { createdAt: "desc" },
       take: 201,

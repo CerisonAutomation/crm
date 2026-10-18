@@ -4,8 +4,8 @@
 
 import { Module } from "@nestjs/common";
 import { DatabaseModule } from "../database/database.module";
-import { BrainService } from "./brain.service";
 import { BrainController } from "./brain.controller";
+import { BrainService } from "./brain.service";
 
 @Module({
 	imports: [DatabaseModule],

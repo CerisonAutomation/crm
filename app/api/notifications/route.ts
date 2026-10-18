@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
     const rows = await db.notification.findMany({
       where: { userId: ctx.userId },
       orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-      ...(cursor ? { cursor: { id: decodeCursor(cursor) }, skip: 1 } : {}),
+      ...(cursor ? { cursor: { id: decodeCursor(cursor) }, skip: 1 } : undefined),
       take: limit + 1,
     });
     const page = nextPage(rows, limit, (n) => n.id);

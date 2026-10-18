@@ -307,11 +307,11 @@ export async function listConversations(input: {
   return db.conversation.findMany({
     where: {
       orgId,
-      ...(status ? { status } : {}),
-      ...(channel ? { channel } : {}),
-      ...(ownerId ? { ownerId } : {}),
-      ...(caseId ? { caseId } : {}),
-      ...(partyId ? { partyId } : {}),
+      ...(status ? { status } : undefined),
+      ...(channel ? { channel } : undefined),
+      ...(ownerId ? { ownerId } : undefined),
+      ...(caseId ? { caseId } : undefined),
+      ...(partyId ? { partyId } : undefined),
     },
     include: {
       owner: { select: { id: true, name: true, email: true } },
@@ -428,7 +428,7 @@ export async function updateMessageStatus(
     where: { id: messageId },
     data: {
       status,
-      ...(providerId ? { providerId } : {}),
+      ...(providerId ? { providerId } : undefined),
     },
   });
 }

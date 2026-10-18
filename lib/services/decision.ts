@@ -60,7 +60,7 @@ export async function getDecisions(
   return db.decision.findMany({
     where: {
       orgId,
-      ...(caseId ? { caseId } : {}),
+      ...(caseId ? { caseId } : undefined),
     },
     orderBy: { createdAt: "desc" },
   });

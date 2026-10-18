@@ -1079,8 +1079,7 @@ async function handleCountersignLetter(
         data: {
           approvedBy: ctx.userId,
           ...(envelopeId
-            ? { signatureProvider: "DOCUMENSO", signatureRef: envelopeId }
-            : {}),
+            ? { signatureProvider: "DOCUMENSO", signatureRef: envelopeId } : undefined),
         },
       });
   });
@@ -1450,7 +1449,7 @@ export async function GET(
         tx.comment.findMany({
           where: {
             caseId: id,
-            ...(ctx.role === "CLIENT" ? { internal: false } : {}),
+            ...(ctx.role === "CLIENT" ? { internal: false } : undefined),
           },
           include: { author: { select: { name: true, role: true } } },
           orderBy: { createdAt: "desc" },

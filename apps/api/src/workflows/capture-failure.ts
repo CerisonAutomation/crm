@@ -5,7 +5,11 @@
  */
 
 import { Logger } from "@nestjs/common";
-import { toWorkflowFailure, type WorkflowFailure, type WorkflowTenant } from "./workflow-errors";
+import {
+	toWorkflowFailure,
+	type WorkflowFailure,
+	type WorkflowTenant,
+} from "./workflow-errors";
 
 const REPORT_FLUSH_MS = 2000;
 
@@ -43,12 +47,13 @@ async function flushSafely(logger: Logger): Promise<void> {
 	try {
 		await sentryClient.flush(REPORT_FLUSH_MS);
 	} catch (reportingError) {
-		logger.error(
-			{
-				message: "Workflow failure reporting could not flush",
-				cause: reportingError instanceof Error ? reportingError.message : String(reportingError),
-			},
-		);
+		logger.error({
+			message: "Workflow failure reporting could not flush",
+			cause:
+				reportingError instanceof Error
+					? reportingError.message
+					: String(reportingError),
+		});
 	}
 }
 
@@ -84,7 +89,10 @@ export async function reportFailure(
 	} catch (reportingError) {
 		logger.error({
 			message: "Workflow failure reporting failed",
-			cause: reportingError instanceof Error ? reportingError.message : String(reportingError),
+			cause:
+				reportingError instanceof Error
+					? reportingError.message
+					: String(reportingError),
 		});
 	}
 }
@@ -115,7 +123,10 @@ export async function reportWarning(
 	} catch (reportingError) {
 		logger.error({
 			message: "Workflow warning reporting failed",
-			cause: reportingError instanceof Error ? reportingError.message : String(reportingError),
+			cause:
+				reportingError instanceof Error
+					? reportingError.message
+					: String(reportingError),
 		});
 	}
 }

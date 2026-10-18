@@ -55,8 +55,8 @@ export async function getMcpTools(orgId: string, filters?: {
   return db.mcpTool.findMany({
     where: {
       orgId,
-      ...(filters?.enabled !== undefined ? { enabled: filters.enabled } : {}),
-      ...(filters?.sensitivity ? { sensitivity: filters.sensitivity } : {}),
+      ...(filters?.enabled !== undefined ? { enabled: filters.enabled } : undefined),
+      ...(filters?.sensitivity ? { sensitivity: filters.sensitivity } : undefined),
     },
     orderBy: { name: "asc" },
   });

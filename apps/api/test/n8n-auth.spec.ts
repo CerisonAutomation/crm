@@ -1,12 +1,18 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { automationBearerValid } from "../src/n8n/n8n.controller";
 import { mcpTokenFromEnv } from "../src/mcp/mcp.controller";
-import { classifyDeliveryFailure, WEBHOOK_PREFLIGHT_FAILURE_STATUS } from "../src/workflows/deliver-webhook.workflow";
+import { automationBearerValid } from "../src/n8n/n8n.controller";
+import {
+	classifyDeliveryFailure,
+	WEBHOOK_PREFLIGHT_FAILURE_STATUS,
+} from "../src/workflows/deliver-webhook.workflow";
 import { classifyStartFailure } from "../src/workflows/run-routine.workflow";
 
 const LONG_SECRET = "0123456789abcdef0123456789abcdef";
 
-function withEnv(values: Record<string, string | undefined>, fn: () => void): void {
+function withEnv(
+	values: Record<string, string | undefined>,
+	fn: () => void,
+): void {
 	const previous: Record<string, string | undefined> = {};
 	for (const [key, value] of Object.entries(values)) {
 		previous[key] = process.env[key];
@@ -75,11 +81,21 @@ describe("mcp token configuration", () => {
 
 describe("delivery failure classification", () => {
 	it("passes when the delivery succeeded", () => {
-		expect(classifyDeliveryFailure({ status: "success", statusCode: 200, responseMessage: "OK" })).toBeNull();
+		expect(
+			classifyDeliveryFailure({
+				status: "success",
+				statusCode: 200,
+				responseMessage: "OK",
+			}),
+		).toBeNull();
 	});
 
 	it("treats retryable statuses as external failures", () => {
-		const failure = classifyDeliveryFailure({ status: "failed", statusCode: 503, responseMessage: "unavailable" });
+		const failure = classifyDeliveryFailure({
+			status: "failed",
+			statusCode: 503,
+			responseMessage: "unavailable",
+		});
 		expect(failure?.name).toBe("WebhookExternalFailure");
 		const timeout = classifyDeliveryFailure({
 			status: "failed",
@@ -90,9 +106,17 @@ describe("delivery failure classification", () => {
 	});
 
 	it("treats hard 4xx rejections as non-retryable", () => {
-		const failure = classifyDeliveryFailure({ status: "failed", statusCode: 404, responseMessage: "missing" });
+		const failure = classifyDeliveryFailure({
+			status: "failed",
+			statusCode: 404,
+			responseMessage: "missing",
+		});
 		expect(failure?.name).toBe("WebhookNonRetryableFailure");
-		const retryable429 = classifyDeliveryFailure({ status: "failed", statusCode: 429, responseMessage: "slow down" });
+		const retryable429 = classifyDeliveryFailure({
+			status: "failed",
+			statusCode: 429,
+			responseMessage: "slow down",
+		});
 		expect(retryable429?.name).toBe("WebhookExternalFailure");
 	});
 
@@ -103,8 +127,12 @@ describe("delivery failure classification", () => {
 
 describe("routine start failure reasons", () => {
 	it("maps inactive-owner failures distinctly", () => {
-		expect(classifyStartFailure(new Error("user is inactive"))).toBe("ownerInactive");
-		expect(classifyStartFailure(new Error("connection lost"))).toBe("startFailed");
+		expect(classifyStartFailure(new Error("user is inactive"))).toBe(
+			"ownerInactive",
+		);
+		expect(classifyStartFailure(new Error("connection lost"))).toBe(
+			"startFailed",
+		);
 		expect(classifyStartFailure("string failure")).toBe("startFailed");
 	});
 });

@@ -230,7 +230,7 @@ export const useApp = create<AppState>((set, get) => {
     mode: "push" | "replace",
     preserveView: string | null = null,
   ): void {
-    if (typeof window === "undefined" || window.location.pathname !== "/")
+    if (globalThis.window === undefined || window.location.pathname !== "/")
       return;
     if (suppressUrlSync) return;
     const query = buildRouteSearch(window.location.search, get(), preserveView);
@@ -365,7 +365,7 @@ function directView(param: string | null): View | null {
  * Pure read — never touches the URL or the store.
  */
 function resolveDestination(user: SessionUser | null): Resolution {
-  if (typeof window === "undefined") {
+  if (globalThis.window === undefined) {
     return {
       view: "landing",
       activeCaseId: null,
@@ -452,7 +452,7 @@ let popstateBound = false;
  * a navigation loop, so it must never happen.
  */
 function bindPopstate(): void {
-  if (popstateBound || typeof window === "undefined") return;
+  if (popstateBound || globalThis.window === undefined) return;
   popstateBound = true;
   window.addEventListener("popstate", () => {
     const {
@@ -488,7 +488,7 @@ let recentsBound = false;
  * inside `rememberRecent` itself.
  */
 function bindRecents(): void {
-  if (recentsBound || typeof window === "undefined") return;
+  if (recentsBound || globalThis.window === undefined) return;
   recentsBound = true;
   useApp.subscribe((state, prev) => {
     if (state.view === prev.view || !state.session) return;

@@ -220,8 +220,7 @@ function compilePiece(node: WfNode, workflowKey: string): Compiled {
               id: stableId(`${workflowKey}:${node.key}`),
               leftValue: `={{ $json[${JSON.stringify(left)}] }}`,
               ...(exists
-                ? {}
-                : { rightValue: typeof config.value === "string" ? config.value : String(config.value ?? "") }),
+                ? undefined : { rightValue: typeof config.value === "string" ? config.value : String(config.value ?? "") }),
               operator: exists
                 ? { type: "string", operation: "exists", singleValue: true }
                 : { type: "string", operation: "equals" },
@@ -372,7 +371,7 @@ export function compileWorkflow(
       parameters: compiled.parameters,
       notes: `${compiled.notes ?? notes(node.pieceKey)}${catalog ? ` · ${catalog.category}` : ""}`,
       notesInFlow: false,
-      ...(compiled.webhookId ? { webhookId: compiled.webhookId } : {}),
+      ...(compiled.webhookId ? { webhookId: compiled.webhookId } : undefined),
     };
   });
 

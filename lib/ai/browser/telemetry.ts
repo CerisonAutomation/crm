@@ -48,7 +48,7 @@ export function recordCapability(e: {
   outcome: TelemetryOutcome;
   reason?: string;
 }): void {
-  if (typeof window === "undefined") return;
+  if (globalThis.window === undefined) return;
   try {
     const c = detectCapabilities();
     const event: CapabilityTelemetry = {

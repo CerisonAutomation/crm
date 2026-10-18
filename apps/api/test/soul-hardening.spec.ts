@@ -1,17 +1,18 @@
 import { describe, expect, it } from "bun:test";
 import {
-	resolveEffectiveSoul,
-	type SoulLayer,
-} from "../src/soul/soul.service";
-import {
 	hashCode,
 	isValidDomain,
 	openSecret,
 	sealSecret,
 } from "../src/hardening/hardening-services";
+import { resolveEffectiveSoul, type SoulLayer } from "../src/soul/soul.service";
 import { WorkflowNonRetryableError } from "../src/workflows/workflow-errors";
 
-function layer(id: string, parentId: string | null, over: Partial<SoulLayer> = {}): SoulLayer {
+function layer(
+	id: string,
+	parentId: string | null,
+	over: Partial<SoulLayer> = {},
+): SoulLayer {
 	return {
 		id,
 		parentId,
@@ -48,7 +49,10 @@ describe("resolveEffectiveSoul (white-label inheritance)", () => {
 
 		const soul = resolveEffectiveSoul("child", byId);
 		expect(soul.labels).toEqual({ deal: "Sale", contact: "Client" });
-		expect(soul.branding).toEqual({ colors: { primary: "#ff5500" }, logo: "root.png" });
+		expect(soul.branding).toEqual({
+			colors: { primary: "#ff5500" },
+			logo: "root.png",
+		});
 		expect(soul.tone).toBe("friendly");
 		expect(soul.positioning).toBe("Fast local plumber");
 		expect(soul.chain).toEqual(["child", "root"]);
@@ -59,11 +63,15 @@ describe("resolveEffectiveSoul (white-label inheritance)", () => {
 			["a", layer("a", "b")],
 			["b", layer("b", "a")],
 		]);
-		expect(() => resolveEffectiveSoul("a", byId)).toThrow(WorkflowNonRetryableError);
+		expect(() => resolveEffectiveSoul("a", byId)).toThrow(
+			WorkflowNonRetryableError,
+		);
 	});
 
 	it("throws for unknown souls", () => {
-		expect(() => resolveEffectiveSoul("missing", new Map())).toThrow(WorkflowNonRetryableError);
+		expect(() => resolveEffectiveSoul("missing", new Map())).toThrow(
+			WorkflowNonRetryableError,
+		);
 	});
 });
 
@@ -78,9 +86,15 @@ describe("secret vault crypto", () => {
 
 	it("fails on tampered ciphertext or auth tag", () => {
 		const sealed = sealSecret("value", key);
-		const tampered = { ...sealed, ciphertext: Buffer.from("different").toString("base64") };
+		const tampered = {
+			...sealed,
+			ciphertext: Buffer.from("different").toString("base64"),
+		};
 		expect(() => openSecret(tampered, key)).toThrow();
-		const tagTampered = { ...sealed, authTag: Buffer.alloc(16, 1).toString("base64") };
+		const tagTampered = {
+			...sealed,
+			authTag: Buffer.alloc(16, 1).toString("base64"),
+		};
 		expect(() => openSecret(tagTampered, key)).toThrow();
 	});
 

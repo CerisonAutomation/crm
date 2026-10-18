@@ -1281,7 +1281,7 @@ function BuilderDnd({
 function useIsDesktop() {
   // PagesEditor only mounts after client navigation — lazy init avoids a flash.
   const [isDesktop, setIsDesktop] = useState<boolean>(
-    () => typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches,
+    () => globalThis.window !== undefined && window.matchMedia("(min-width: 1024px)").matches,
   );
   useEffect(() => {
     const mq = window.matchMedia("(min-width: 1024px)");

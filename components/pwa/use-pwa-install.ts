@@ -43,7 +43,7 @@ function notify() {
 }
 
 function readsStandalone(): boolean {
-  if (typeof window === "undefined") return false;
+  if (globalThis.window === undefined) return false;
   return Boolean(
     window.matchMedia?.("(display-mode: standalone)").matches ||
       (window.navigator as Navigator & { standalone?: boolean }).standalone,
@@ -52,7 +52,7 @@ function readsStandalone(): boolean {
 
 /** Hidden for 14 days after "Not now", then allowed one more appearance. */
 function readsDismissed(): boolean {
-  if (typeof window === "undefined") return false;
+  if (globalThis.window === undefined) return false;
   try {
     const ts = Number(window.localStorage.getItem(DISMISS_KEY) ?? "0");
     return ts > 0 && Date.now() - ts < DISMISS_DAYS * 24 * 60 * 60 * 1000;
@@ -82,7 +82,7 @@ function getServerSnapshot(): Snapshot {
 }
 
 export function subscribeInstall(callback: () => void): () => void {
-  if (!armed && typeof window !== "undefined") {
+  if (!armed && globalThis.window !== undefined) {
     armed = true;
     window.addEventListener("beforeinstallprompt", (event) => {
       event.preventDefault();
@@ -125,7 +125,7 @@ export function dismissInstall(): void {
 }
 
 export function isIosDevice(): boolean {
-  if (typeof window === "undefined") return false;
+  if (globalThis.window === undefined) return false;
   return /iphone|ipad|ipod/i.test(window.navigator.userAgent);
 }
 

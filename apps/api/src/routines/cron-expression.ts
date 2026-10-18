@@ -17,7 +17,20 @@ const FIELD_LIMITS = {
 	dayOfWeek: { min: 0, max: 7 },
 } as const;
 
-const MONTH_NAMES = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+const MONTH_NAMES = [
+	"jan",
+	"feb",
+	"mar",
+	"apr",
+	"may",
+	"jun",
+	"jul",
+	"aug",
+	"sep",
+	"oct",
+	"nov",
+	"dec",
+];
 const DAY_NAMES = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
 
 type FieldName = keyof typeof FIELD_LIMITS;
@@ -59,7 +72,10 @@ function parseValue(token: string, field: FieldName): number {
 	const value = Number(token);
 	if (field === "dayOfWeek" && value === 7) return 0;
 	if (value < limits.min || value > limits.max) {
-		throw new CronParseError(field, `${value} is outside ${limits.min}-${limits.max}`);
+		throw new CronParseError(
+			field,
+			`${value} is outside ${limits.min}-${limits.max}`,
+		);
 	}
 	return value;
 }
@@ -79,14 +95,18 @@ function parseField(raw: string, field: FieldName): Set<number> {
 
 	for (const part of text.split(",")) {
 		const segment = part.trim();
-		if (segment.length === 0) throw new CronParseError(field, "empty list item");
+		if (segment.length === 0)
+			throw new CronParseError(field, "empty list item");
 
 		const rangeTokens = segment.split("/");
 		const rangePart = rangeTokens[0] ?? "";
 		const stepPart = rangeTokens[1];
 		const step = stepPart === undefined ? 1 : Number(stepPart);
 		if (!Number.isInteger(step) || step < 1) {
-			throw new CronParseError(field, `step "${stepPart}" must be a positive integer`);
+			throw new CronParseError(
+				field,
+				`step "${stepPart}" must be a positive integer`,
+			);
 		}
 
 		let start: number;
@@ -102,10 +122,16 @@ function parseField(raw: string, field: FieldName): Set<number> {
 			const to = rangeBounds[1] ?? "";
 			start = parseValue(from, field);
 			end = parseValue(to, field);
-			if (start > end) throw new CronParseError(field, `range ${rangePart} is reversed`);
+			if (start > end)
+				throw new CronParseError(field, `range ${rangePart} is reversed`);
 		} else {
 			start = parseValue(rangePart, field);
-			end = stepPart === undefined ? start : (field === "dayOfWeek" ? 6 : FIELD_LIMITS[field].max);
+			end =
+				stepPart === undefined
+					? start
+					: field === "dayOfWeek"
+						? 6
+						: FIELD_LIMITS[field].max;
 		}
 
 		for (let value = start; value <= end; value += step) {
@@ -120,7 +146,10 @@ function parseField(raw: string, field: FieldName): Set<number> {
 export function parseCron(expression: string): CronExpression {
 	const fields = expression.trim().split(/\s+/);
 	if (fields.length !== 5) {
-		throw new CronParseError("expression", `expected 5 fields, found ${fields.length}`);
+		throw new CronParseError(
+			"expression",
+			`expected 5 fields, found ${fields.length}`,
+		);
 	}
 
 	const minute = fields[0] ?? "";
@@ -179,7 +208,10 @@ function zonedParts(date: Date, timeZone: string): ZonedParts {
 	const parts = formatter.formatToParts(date);
 	const lookup = (type: string): number => {
 		const found = parts.find((part) => part.type === type);
-		if (!found) throw new Error(`Intl.DateTimeFormat returned no ${type} for ${timeZone}`);
+		if (!found)
+			throw new Error(
+				`Intl.DateTimeFormat returned no ${type} for ${timeZone}`,
+			);
 		return Number(found.value);
 	};
 
@@ -200,7 +232,14 @@ function zonedParts(date: Date, timeZone: string): ZonedParts {
  */
 function timeZoneOffsetMs(instant: number, timeZone: string): number {
 	const parts = zonedParts(new Date(instant), timeZone);
-	const asIfUtc = Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute, 0);
+	const asIfUtc = Date.UTC(
+		parts.year,
+		parts.month - 1,
+		parts.day,
+		parts.hour,
+		parts.minute,
+		0,
+	);
 	return asIfUtc - Math.floor(instant / 60_000) * 60_000;
 }
 
@@ -211,7 +250,14 @@ function timeZoneOffsetMs(instant: number, timeZone: string): number {
  * repeated local times (fall-back) the earlier instant wins.
  */
 function zonedTimeToUtc(parts: ZonedParts, timeZone: string): Date | null {
-	const localAsUtc = Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute, 0);
+	const localAsUtc = Date.UTC(
+		parts.year,
+		parts.month - 1,
+		parts.day,
+		parts.hour,
+		parts.minute,
+		0,
+	);
 
 	let guess = localAsUtc - timeZoneOffsetMs(localAsUtc, timeZone);
 	guess = localAsUtc - timeZoneOffsetMs(guess, timeZone);
@@ -230,7 +276,11 @@ function zonedTimeToUtc(parts: ZonedParts, timeZone: string): Date | null {
 	return null;
 }
 
-function dayMatches(cron: CronExpression, parts: ZonedParts, dayOfWeek: number): boolean {
+function dayMatches(
+	cron: CronExpression,
+	parts: ZonedParts,
+	dayOfWeek: number,
+): boolean {
 	const domMatch = cron.dayOfMonth.has(parts.day);
 	const dowMatch = cron.dayOfWeek.has(dayOfWeek);
 
@@ -247,24 +297,41 @@ const DAY_MS = 24 * 60 * 60 * 1000;
  * expression in `timeZone`. Scans up to 366 days ahead and returns `null` when
  * the expression cannot fire in that window (e.g. `0 0 30 2 *`).
  */
-export function nextCronRun(expression: string | CronExpression, from: Date, timeZone: string): Date | null {
-	const cron = typeof expression === "string" ? parseCron(expression) : expression;
+export function nextCronRun(
+	expression: string | CronExpression,
+	from: Date,
+	timeZone: string,
+): Date | null {
+	const cron =
+		typeof expression === "string" ? parseCron(expression) : expression;
 	const start = new Date(from.getTime() + 60_000 - (from.getTime() % 60_000));
 
 	let cursorDay = new Date(start.getTime());
 	for (let dayOffset = 0; dayOffset <= 366; dayOffset += 1) {
 		const parts = zonedParts(cursorDay, timeZone);
-		const dayOfWeek = new Date(Date.UTC(parts.year, parts.month - 1, parts.day)).getUTCDay();
+		const dayOfWeek = new Date(
+			Date.UTC(parts.year, parts.month - 1, parts.day),
+		).getUTCDay();
 
 		if (cron.month.has(parts.month) && dayMatches(cron, parts, dayOfWeek)) {
 			for (const hour of [...cron.hour].sort((a, b) => a - b)) {
 				if (hour < parts.hour && dayOffset === 0) continue;
 				for (const minute of [...cron.minute].sort((a, b) => a - b)) {
-					if (dayOffset === 0 && (hour < parts.hour || (hour === parts.hour && minute < parts.minute))) {
+					if (
+						dayOffset === 0 &&
+						(hour < parts.hour ||
+							(hour === parts.hour && minute < parts.minute))
+					) {
 						continue;
 					}
 					const instant = zonedTimeToUtc(
-						{ year: parts.year, month: parts.month, day: parts.day, hour, minute },
+						{
+							year: parts.year,
+							month: parts.month,
+							day: parts.day,
+							hour,
+							minute,
+						},
 						timeZone,
 					);
 					if (instant && instant.getTime() > from.getTime()) {
@@ -276,10 +343,17 @@ export function nextCronRun(expression: string | CronExpression, from: Date, tim
 
 		cursorDay = new Date(cursorDay.getTime() + DAY_MS);
 		const cursorParts = zonedParts(cursorDay, timeZone);
-		cursorDay = zonedTimeToUtc(
-			{ year: cursorParts.year, month: cursorParts.month, day: cursorParts.day, hour: 0, minute: 0 },
-			timeZone,
-		) ?? new Date(cursorDay.getTime() + DAY_MS);
+		cursorDay =
+			zonedTimeToUtc(
+				{
+					year: cursorParts.year,
+					month: cursorParts.month,
+					day: cursorParts.day,
+					hour: 0,
+					minute: 0,
+				},
+				timeZone,
+			) ?? new Date(cursorDay.getTime() + DAY_MS);
 	}
 
 	return null;

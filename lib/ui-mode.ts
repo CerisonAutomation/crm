@@ -85,7 +85,7 @@ function normalizePreferences(raw: unknown): Preferences {
 
 /** Read persisted preferences (never throws; private mode yields defaults). */
 export function readPreferences(): Preferences {
-  if (typeof window === "undefined") return { ...DEFAULT_PREFERENCES };
+  if (globalThis.window === undefined) return { ...DEFAULT_PREFERENCES };
   try {
     const raw = window.localStorage.getItem(PREFS_KEY);
     if (raw) return normalizePreferences(JSON.parse(raw));
@@ -102,7 +102,7 @@ export function readPreferences(): Preferences {
 
 /** Does the OS ask for dark right now? (Only consulted for `theme: "system"`.) */
 function systemPrefersDark(): boolean {
-  if (typeof window === "undefined" || typeof window.matchMedia !== "function") return false;
+  if (globalThis.window === undefined || typeof window.matchMedia !== "function") return false;
   return window.matchMedia("(prefers-color-scheme: dark)").matches;
 }
 
@@ -117,7 +117,7 @@ function resolvedTheme(prefs: Preferences): "light" | "dark" {
  * globals.css — this only sets the switches.
  */
 export function applyPreferences(prefs: Preferences): void {
-  if (typeof document === "undefined") return;
+  if (globalThis.document === undefined) return;
   const el = document.documentElement;
   el.classList.toggle("dark", resolvedTheme(prefs) === "dark");
   el.dataset.density = prefs.density;
@@ -151,7 +151,7 @@ const SERVER_SNAPSHOT: Preferences = { ...DEFAULT_PREFERENCES };
 export function setPreferences(patch: Partial<Preferences>): void {
   const next = normalizePreferences({ ...ensureLoaded(), ...patch });
   current = next;
-  if (typeof window !== "undefined") {
+  if (globalThis.window !== undefined) {
     try {
       window.localStorage.setItem(PREFS_KEY, JSON.stringify(next));
       // Keep the legacy key truthful so anything still reading it agrees.
@@ -198,7 +198,7 @@ let systemThemeBound = false;
  * pattern as the popstate and telemetry binders.
  */
 export function bindSystemTheme(): void {
-  if (systemThemeBound || typeof window === "undefined" || typeof window.matchMedia !== "function") return;
+  if (systemThemeBound || globalThis.window === undefined || typeof window.matchMedia !== "function") return;
   systemThemeBound = true;
   const mq = window.matchMedia("(prefers-color-scheme: dark)");
   const onChange = () => {

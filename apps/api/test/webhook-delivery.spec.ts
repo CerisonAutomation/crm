@@ -1,43 +1,62 @@
 import { describe, expect, it } from "bun:test";
 import {
+	isRenderableWebhookBodyTemplate,
+	renderWebhookBody,
+	WEBHOOK_RENDERED_BODY_MAX_CHARS,
+} from "../src/webhooks/webhook-body-template";
+import {
+	buildWebhookEventEnvelope,
+	isWebhookEventName,
+	WEBHOOK_EVENTS,
+} from "../src/webhooks/webhook-events";
+import {
 	allowsCredentialedHeaders,
 	formatWebhookHeaderLines,
 	isReservedWebhookHeader,
 	parseStoredWebhookHeaders,
 	parseWebhookHeaderLines,
 	validateWebhookHeaders,
-	WebhookHeadersSchema,
 	WEBHOOK_HEADER_MAX_COUNT,
 	WEBHOOK_HEADER_TOTAL_MAX_CHARS,
+	WebhookHeadersSchema,
 } from "../src/webhooks/webhook-headers";
 import {
 	signWebhookPayload,
 	verifyWebhookSignature,
 	WEBHOOK_SIGNATURE_HEADER,
 } from "../src/webhooks/webhook-signature";
-import {
-	isRenderableWebhookBodyTemplate,
-	renderWebhookBody,
-	WEBHOOK_RENDERED_BODY_MAX_CHARS,
-} from "../src/webhooks/webhook-body-template";
-import { buildWebhookEventEnvelope, isWebhookEventName, WEBHOOK_EVENTS } from "../src/webhooks/webhook-events";
 
 describe("webhook header validation", () => {
 	it("accepts ordinary custom headers", () => {
-		expect(validateWebhookHeaders({ "X-Tenant": "acme", Authorization: "Bearer abc" })).toEqual([]);
+		expect(
+			validateWebhookHeaders({
+				"X-Tenant": "acme",
+				Authorization: "Bearer abc",
+			}),
+		).toEqual([]);
 	});
 
 	it("refuses reserved hop-by-hop and signing headers", () => {
 		expect(isReservedWebhookHeader("Content-Type")).toBe(true);
 		expect(isReservedWebhookHeader("x-webhook-signature")).toBe(true);
-		expect(validateWebhookHeaders({ "X-Webhook-Signature": "spoofed" })).toContain("nameReserved");
-		expect(validateWebhookHeaders({ Connection: "keep-alive" })).toContain("nameReserved");
+		expect(
+			validateWebhookHeaders({ "X-Webhook-Signature": "spoofed" }),
+		).toContain("nameReserved");
+		expect(validateWebhookHeaders({ Connection: "keep-alive" })).toContain(
+			"nameReserved",
+		);
 	});
 
 	it("refuses invalid names, values, duplicates and oversized sets", () => {
-		expect(validateWebhookHeaders({ "Bad Header": "x" })).toContain("nameInvalid");
-		expect(validateWebhookHeaders({ "X-Ok": "value\nwith newline" })).toContain("valueInvalid");
-		expect(validateWebhookHeaders({ "X-A": "1", "x-a": "2" })).toContain("duplicateHeader");
+		expect(validateWebhookHeaders({ "Bad Header": "x" })).toContain(
+			"nameInvalid",
+		);
+		expect(validateWebhookHeaders({ "X-Ok": "value\nwith newline" })).toContain(
+			"valueInvalid",
+		);
+		expect(validateWebhookHeaders({ "X-A": "1", "x-a": "2" })).toContain(
+			"duplicateHeader",
+		);
 
 		const tooMany: Record<string, string> = {};
 		for (let index = 0; index <= WEBHOOK_HEADER_MAX_COUNT; index += 1) {
@@ -45,13 +64,17 @@ describe("webhook header validation", () => {
 		}
 		expect(validateWebhookHeaders(tooMany)).toContain("tooManyHeaders");
 
-		const huge: Record<string, string> = { "X-Big": "a".repeat(WEBHOOK_HEADER_TOTAL_MAX_CHARS) };
+		const huge: Record<string, string> = {
+			"X-Big": "a".repeat(WEBHOOK_HEADER_TOTAL_MAX_CHARS),
+		};
 		expect(validateWebhookHeaders(huge)).toContain("headersTooLarge");
 	});
 
 	it("agrees with the zod schema", () => {
 		expect(WebhookHeadersSchema.safeParse({ "X-Ok": "1" }).success).toBe(true);
-		expect(WebhookHeadersSchema.safeParse({ Connection: "close" }).success).toBe(false);
+		expect(
+			WebhookHeadersSchema.safeParse({ Connection: "close" }).success,
+		).toBe(false);
 	});
 
 	it("drops unusable stored headers and formats lines losslessly", () => {
@@ -65,7 +88,11 @@ describe("webhook header validation", () => {
 
 		expect(formatWebhookHeaderLines({ A: "1", B: "2" })).toBe("A: 1\nB: 2");
 		expect(formatWebhookHeaderLines(null)).toBe("");
-		expect(parseWebhookHeaderLines("A: 1\nB: 2\nmalformed\nC: 3")).toEqual({ A: "1", B: "2", C: "3" });
+		expect(parseWebhookHeaderLines("A: 1\nB: 2\nmalformed\nC: 3")).toEqual({
+			A: "1",
+			B: "2",
+			C: "3",
+		});
 	});
 
 	it("only lets credentialed headers travel to https or loopback", () => {
@@ -91,8 +118,12 @@ describe("webhook signing", () => {
 	it("verifies authentic signatures and rejects tampering", () => {
 		const signature = signWebhookPayload(secret, body);
 		expect(verifyWebhookSignature(secret, body, signature)).toBe(true);
-		expect(verifyWebhookSignature(secret, body, `${signature.slice(0, -1)}0`)).toBe(false);
-		expect(verifyWebhookSignature(secret, body, signature.toUpperCase())).toBe(false);
+		expect(
+			verifyWebhookSignature(secret, body, `${signature.slice(0, -1)}0`),
+		).toBe(false);
+		expect(verifyWebhookSignature(secret, body, signature.toUpperCase())).toBe(
+			false,
+		);
 		expect(verifyWebhookSignature("other-secret", body, signature)).toBe(false);
 		expect(verifyWebhookSignature(secret, body, "")).toBe(false);
 	});
@@ -105,7 +136,11 @@ describe("webhook signing", () => {
 describe("webhook body templates", () => {
 	const envelope = {
 		event: "deal.updated",
-		data: { userId: "u1", entityId: "d1", payload: { name: "Big \"Deal\"", amount: 12 } },
+		data: {
+			userId: "u1",
+			entityId: "d1",
+			payload: { name: 'Big "Deal"', amount: 12 },
+		},
 		timestamp: "2026-10-13T00:00:00.000Z",
 	};
 
@@ -116,7 +151,11 @@ describe("webhook body templates", () => {
 		);
 		expect(rendered.ok).toBe(true);
 		if (rendered.ok) {
-			expect(rendered.body).toEqual({ id: "d1", name: 'Big "Deal"', amount: 12 });
+			expect(rendered.body).toEqual({
+				id: "d1",
+				name: 'Big "Deal"',
+				amount: 12,
+			});
 		}
 	});
 
@@ -127,14 +166,25 @@ describe("webhook body templates", () => {
 	});
 
 	it("rejects templates that do not produce a JSON object", () => {
-		expect(renderWebhookBody('{"x": oops', envelope)).toEqual({ ok: false, reason: "invalidJson" });
-		expect(renderWebhookBody('["{{data.entityId}}"]', envelope)).toEqual({ ok: false, reason: "notAnObject" });
+		expect(renderWebhookBody('{"x": oops', envelope)).toEqual({
+			ok: false,
+			reason: "invalidJson",
+		});
+		expect(renderWebhookBody('["{{data.entityId}}"]', envelope)).toEqual({
+			ok: false,
+			reason: "notAnObject",
+		});
 		const oversized = `{"big":"${"a".repeat(WEBHOOK_RENDERED_BODY_MAX_CHARS)}"}`;
-		expect(renderWebhookBody(oversized, envelope)).toEqual({ ok: false, reason: "tooLarge" });
+		expect(renderWebhookBody(oversized, envelope)).toEqual({
+			ok: false,
+			reason: "tooLarge",
+		});
 	});
 
 	it("proves the sample-template checker works", () => {
-		expect(isRenderableWebhookBodyTemplate('{"id":"{{data.entityId}}"}')).toBe(true);
+		expect(isRenderableWebhookBodyTemplate('{"id":"{{data.entityId}}"}')).toBe(
+			true,
+		);
 		expect(isRenderableWebhookBodyTemplate("{nope")).toBe(false);
 	});
 });
@@ -147,7 +197,12 @@ describe("webhook event registry", () => {
 	});
 
 	it("builds the documented envelope", () => {
-		const envelope = buildWebhookEventEnvelope("deal.created", "d9", { name: "X" }, "u1");
+		const envelope = buildWebhookEventEnvelope(
+			"deal.created",
+			"d9",
+			{ name: "X" },
+			"u1",
+		);
 		expect(envelope.event).toBe("deal.created");
 		expect(envelope.data.entityId).toBe("d9");
 		expect(envelope.data.userId).toBe("u1");

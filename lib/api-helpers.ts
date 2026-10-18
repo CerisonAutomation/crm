@@ -43,7 +43,7 @@ function jsonError(err: unknown, correlationId?: string) {
         error: err.message,
         code: err.status,
         errorCode: errorCodeForStatus(err.status),
-        ...(correlationId ? { correlationId } : {}),
+        ...(correlationId ? { correlationId } : undefined),
       },
       { status: err.status },
     );
@@ -62,8 +62,8 @@ function jsonError(err: unknown, correlationId?: string) {
         error: err.message,
         code: status,
         errorCode: errorCodeForStatus(status),
-        ...(err.details !== undefined ? { details: err.details } : {}),
-        ...(correlationId ? { correlationId } : {}),
+        ...(err.details !== undefined ? { details: err.details } : undefined),
+        ...(correlationId ? { correlationId } : undefined),
       },
       { status },
     );
@@ -77,7 +77,7 @@ function jsonError(err: unknown, correlationId?: string) {
       error: "Internal error",
       code: 500,
       errorCode: "internal_error",
-      ...(correlationId ? { correlationId } : {}),
+      ...(correlationId ? { correlationId } : undefined),
     },
     { status: 500 },
   );

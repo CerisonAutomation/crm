@@ -9,12 +9,18 @@
  * account root every channel uses. Requests go through the SSRF guard.
  */
 
-import { Inject, Injectable, NotFoundException, Optional } from "@nestjs/common";
 import type { BookingModel, Db } from "@crm/db";
+import {
+	Inject,
+	Injectable,
+	NotFoundException,
+	Optional,
+} from "@nestjs/common";
 
 type Booking = BookingModel;
+
 import { InjectDatabase } from "../database/database.constants";
-import { ssrfSafeFetch, type FetchLike } from "../http/ssrf-safe-fetch";
+import { type FetchLike, ssrfSafeFetch } from "../http/ssrf-safe-fetch";
 import { WorkflowNonRetryableError } from "../workflows/workflow-errors";
 
 export type CalendarProviderId = "google-calendar" | "microsoft-calendar";
@@ -32,7 +38,9 @@ const PROVIDER_ACCOUNT: Record<string, CalendarProviderId> = {
 	"microsoft-calendar": "microsoft-calendar",
 };
 
-export function normalizeCalendarProvider(provider: string): CalendarProviderId | null {
+export function normalizeCalendarProvider(
+	provider: string,
+): CalendarProviderId | null {
 	return PROVIDER_ACCOUNT[provider] ?? null;
 }
 
@@ -50,7 +58,13 @@ export function googleEventBody(booking: {
 		end: { dateTime: booking.endsAt.toISOString(), timeZone: "UTC" },
 		...(booking.meetingUrl
 			? { location: booking.meetingUrl }
-			: { conferenceData: { createRequest: { requestId: `booking-${booking.startsAt.getTime()}` } } }),
+			: {
+					conferenceData: {
+						createRequest: {
+							requestId: `booking-${booking.startsAt.getTime()}`,
+						},
+					},
+				}),
 	};
 }
 
@@ -89,13 +103,18 @@ export class BookingCalendarService {
 			orderBy: { createdAt: "desc" },
 		});
 		if (!account || !account.accessToken) {
-			throw new NotFoundException(`No active ${provider} connection for this user`);
+			throw new NotFoundException(
+				`No active ${provider} connection for this user`,
+			);
 		}
 		return account;
 	}
 
 	/** Creates or updates the external calendar event for a booking. */
-	async pushBooking(ownerUserId: string, booking: Booking): Promise<PushedEvent> {
+	async pushBooking(
+		ownerUserId: string,
+		booking: Booking,
+	): Promise<PushedEvent> {
 		const provider = normalizeCalendarProvider(booking.provider);
 		if (!provider) {
 			throw new WorkflowNonRetryableError(
@@ -124,7 +143,10 @@ export class BookingCalendarService {
 				);
 			}
 			const externalEventId = typeof raw.id === "string" ? raw.id : "";
-			if (!externalEventId) throw new WorkflowNonRetryableError("google calendar returned no event id");
+			if (!externalEventId)
+				throw new WorkflowNonRetryableError(
+					"google calendar returned no event id",
+				);
 			const meetingUrl =
 				typeof raw.hangoutLink === "string"
 					? raw.hangoutLink
@@ -152,7 +174,10 @@ export class BookingCalendarService {
 			);
 		}
 		const externalEventId = typeof raw.id === "string" ? raw.id : "";
-		if (!externalEventId) throw new WorkflowNonRetryableError("microsoft graph returned no event id");
+		if (!externalEventId)
+			throw new WorkflowNonRetryableError(
+				"microsoft graph returned no event id",
+			);
 		const onlineMeeting = raw.onlineMeeting as { joinUrl?: string } | undefined;
 		return {
 			externalEventId,
@@ -162,7 +187,10 @@ export class BookingCalendarService {
 	}
 
 	/** Cancels the external event (idempotent: missing external id is a no-op). */
-	async cancelExternal(ownerUserId: string, booking: Booking): Promise<boolean> {
+	async cancelExternal(
+		ownerUserId: string,
+		booking: Booking,
+	): Promise<boolean> {
 		const provider = normalizeCalendarProvider(booking.provider);
 		if (!provider || !booking.externalEventId) return false;
 		const account = await this.connection(ownerUserId, provider);
@@ -170,10 +198,13 @@ export class BookingCalendarService {
 			provider === "google-calendar"
 				? "https://www.googleapis.com/calendar/v3/calendars/primary/events/"
 				: "https://graph.microsoft.com/v1.0/me/events/";
-		const response = await this.fetcher(`${base}${encodeURIComponent(booking.externalEventId)}`, {
-			method: "DELETE",
-			headers: { authorization: `Bearer ${account.accessToken as string}` },
-		});
+		const response = await this.fetcher(
+			`${base}${encodeURIComponent(booking.externalEventId)}`,
+			{
+				method: "DELETE",
+				headers: { authorization: `Bearer ${account.accessToken as string}` },
+			},
+		);
 		return response.ok || response.status === 410;
 	}
 
@@ -181,7 +212,10 @@ export class BookingCalendarService {
 	 * Full push-and-persist: updates the booking row with the external event
 	 * id and any provider-generated meeting URL.
 	 */
-	async syncBookingToCalendar(ownerUserId: string, bookingId: string): Promise<PushedEvent> {
+	async syncBookingToCalendar(
+		ownerUserId: string,
+		bookingId: string,
+	): Promise<PushedEvent> {
 		const booking = await this.db.booking.findFirst({
 			where: { id: bookingId, ownerUserId },
 		});

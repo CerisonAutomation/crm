@@ -438,7 +438,7 @@ export async function sendWhatsApp(input: WhatsAppInput): Promise<DeliveryOutcom
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(config.token ? { Authorization: `Bearer ${String(config.token)}` } : {}),
+          ...(config.token ? { Authorization: `Bearer ${String(config.token)}` } : undefined),
         },
         body: JSON.stringify({ to: input.toPhone, message: input.message }),
         signal: controller.signal,

@@ -1,10 +1,10 @@
 import { describe, expect, it } from "bun:test";
 import {
 	assertSafeUrl,
+	type FetchLike,
 	isBlockedHost,
 	SsrfBlockedError,
 	ssrfSafeFetch,
-	type FetchLike,
 } from "../src/http/ssrf-safe-fetch";
 
 describe("isBlockedHost", () => {
@@ -33,7 +33,12 @@ describe("isBlockedHost", () => {
 	});
 
 	it("allows public hosts", () => {
-		for (const host of ["graph.facebook.com", "api.linkedin.com", "hooks.example.com", "8.8.8.8"]) {
+		for (const host of [
+			"graph.facebook.com",
+			"api.linkedin.com",
+			"hooks.example.com",
+			"8.8.8.8",
+		]) {
 			expect(isBlockedHost(host)).toBe(false);
 		}
 	});
@@ -41,7 +46,9 @@ describe("isBlockedHost", () => {
 	it("blocks embedded credentials and odd hosts", () => {
 		expect(isBlockedHost("")).toBe(true);
 		expect(() => assertSafeUrl("file:///etc/passwd")).toThrow(SsrfBlockedError);
-		expect(() => assertSafeUrl("http://user:pass@evil.example.com/")).toThrow(SsrfBlockedError);
+		expect(() => assertSafeUrl("http://user:pass@evil.example.com/")).toThrow(
+			SsrfBlockedError,
+		);
 		expect(() => assertSafeUrl("not a url")).toThrow(SsrfBlockedError);
 	});
 });
@@ -51,10 +58,18 @@ describe("ssrfSafeFetch wrapper", () => {
 		let called = 0;
 		const fake: FetchLike = async () => {
 			called += 1;
-			return { ok: true, status: 200, statusText: "OK", json: async () => ({}), text: async () => "" };
+			return {
+				ok: true,
+				status: 200,
+				statusText: "OK",
+				json: async () => ({}),
+				text: async () => "",
+			};
 		};
 		const guarded = ssrfSafeFetch(fake);
-		await expect(guarded("http://169.254.169.254/latest/meta-data/")).rejects.toThrow(SsrfBlockedError);
+		await expect(
+			guarded("http://169.254.169.254/latest/meta-data/"),
+		).rejects.toThrow(SsrfBlockedError);
 		expect(called).toBe(0);
 	});
 
@@ -62,10 +77,19 @@ describe("ssrfSafeFetch wrapper", () => {
 		const seen: Array<{ url: string; redirect?: string }> = [];
 		const fake: FetchLike = async (url, init) => {
 			seen.push({ url, redirect: init?.redirect });
-			return { ok: true, status: 200, statusText: "OK", json: async () => ({ ok: true }), text: async () => "" };
+			return {
+				ok: true,
+				status: 200,
+				statusText: "OK",
+				json: async () => ({ ok: true }),
+				text: async () => "",
+			};
 		};
 		const guarded = ssrfSafeFetch(fake);
-		const response = await guarded("https://hooks.example.com/webhook", { method: "POST", body: "{}" });
+		const response = await guarded("https://hooks.example.com/webhook", {
+			method: "POST",
+			body: "{}",
+		});
 		expect(response.status).toBe(200);
 		expect(seen[0]?.url).toBe("https://hooks.example.com/webhook");
 		expect(seen[0]?.redirect).toBe("manual");
@@ -75,6 +99,8 @@ describe("ssrfSafeFetch wrapper", () => {
 		const guarded = ssrfSafeFetch(async () => {
 			throw new Error("must not be called");
 		});
-		await expect(guarded("https://public.example.com@localhost/steal")).rejects.toThrow(SsrfBlockedError);
+		await expect(
+			guarded("https://public.example.com@localhost/steal"),
+		).rejects.toThrow(SsrfBlockedError);
 	});
 });

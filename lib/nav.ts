@@ -620,7 +620,7 @@ const RECENT_MAX = 5;
  * private mode / blocked storage simply yields no recents.
  */
 export function readRecents(): RecentEntry[] {
-  if (typeof window === "undefined") return [];
+  if (globalThis.window === undefined) return [];
   try {
     const raw = window.localStorage.getItem(RECENT_KEY);
     if (!raw) return [];

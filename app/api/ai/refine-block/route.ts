@@ -102,7 +102,7 @@ export async function POST(req: NextRequest) {
             if (!coerced) throw new DomainError("model returned unusable JSON", 502);
 
       await audit({ orgId: ctx.orgId, actorId: ctx.userId, actorLabel: `${ctx.name} [${ctx.role}]`, action: "ai.block_refined", target: `block/${type}` });
-      return jsonOk({ block: { ...(body.block.key ? { key: body.block.key } : {}), type, config: coerced }, provider: result?.provider ?? "local", changed: true });
+      return jsonOk({ block: { ...(body.block.key ? { key: body.block.key } : undefined), type, config: coerced }, provider: result?.provider ?? "local", changed: true });
     } catch (err) {
       console.warn("[ai-refine] falling back to original block:", (err as Error).message);
       return jsonOk({

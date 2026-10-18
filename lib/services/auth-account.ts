@@ -499,7 +499,7 @@ export async function changePassword(
 
   await db.user.update({ where: { id: user.id }, data: { passwordHash: hashPassword(nextPassword) } });
   await db.session.updateMany({
-    where: { userId: user.id, revokedAt: null, ...(sessionId ? { id: { not: sessionId } } : {}) },
+    where: { userId: user.id, revokedAt: null, ...(sessionId ? { id: { not: sessionId } } : undefined) },
     data: { revokedAt: new Date() },
   });
 
@@ -608,7 +608,7 @@ export async function disableMfa(userId: string, password: string, code: string,
   await verifyMfa(userId, code);
   await db.user.update({ where: { id: userId }, data: { mfaSecret: null, mfaEnabled: false } });
   await db.authToken.deleteMany({ where: { userId, kind: "MFA_RECOVERY" } });
-  await db.session.updateMany({ where: { userId, revokedAt: null, ...(sessionId ? { id: { not: sessionId } } : {}) }, data: { revokedAt: new Date() } });
+  await db.session.updateMany({ where: { userId, revokedAt: null, ...(sessionId ? { id: { not: sessionId } } : undefined) }, data: { revokedAt: new Date() } });
   await audit({ orgId: user.orgId, actorId: user.id, actorLabel: `${user.name} [${user.role}]`, action: "auth.mfa.disabled", target: user.email });
   await notifyUser({ userId: user.id, category: "SYSTEM", title: "Two-factor sign-in was turned off", body: "Other sessions were signed out. Contact your Relationship Manager if this was not you." });
   return { ok: true };

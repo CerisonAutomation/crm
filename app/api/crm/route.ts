@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
     if (view === "tasks") {
       const status = url.searchParams.get("status");
       const tasks = await db.crmTask.findMany({
-        where: { orgId, ...(status ? { status } : {}), ...(q ? { OR: [{ title: { contains: q, mode: "insensitive" } }, { notes: { contains: q, mode: "insensitive" } }] } : {}) },
+        where: { orgId, ...(status ? { status } : undefined), ...(q ? { OR: [{ title: { contains: q, mode: "insensitive" } }, { notes: { contains: q, mode: "insensitive" } }] } : undefined) },
         orderBy: [{ status: "asc" }, { dueDate: "asc" }, { createdAt: "desc" }],
         take: 201,
       });
@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
       const contactId = url.searchParams.get("contactId");
       const caseId = url.searchParams.get("caseId");
       const activity = await db.activity.findMany({
-        where: { orgId, ...(contactId ? { contactId } : {}), ...(caseId ? { caseId } : {}), ...(q ? { summary: { contains: q, mode: "insensitive" } } : {}) },
+        where: { orgId, ...(contactId ? { contactId } : undefined), ...(caseId ? { caseId } : undefined), ...(q ? { summary: { contains: q, mode: "insensitive" } } : undefined) },
         orderBy: { createdAt: "desc" },
         take: 201,
       });
@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
     }
 
     const contacts = await db.contact.findMany({
-      where: { orgId, ...(q ? { OR: [{ name: { contains: q, mode: "insensitive" } }, { email: { contains: q, mode: "insensitive" } }, { company: { contains: q, mode: "insensitive" } }] } : {}) },
+      where: { orgId, ...(q ? { OR: [{ name: { contains: q, mode: "insensitive" } }, { email: { contains: q, mode: "insensitive" } }, { company: { contains: q, mode: "insensitive" } }] } : undefined) },
       orderBy: { createdAt: "desc" },
       take: 201,
       include: { activities: { orderBy: { createdAt: "desc" }, take: 5 } },

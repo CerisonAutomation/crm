@@ -2040,6 +2040,9 @@ export const DE: Partial<Dict> = {
   "consultations.placeholderDescription":
     "The consultations endpoint is not wired yet — requests are handled through the bookings queue.",
   "consultations.placeholderAction": "Open bookings",
+  "consultations.detailTitle": "Beratungsdetails",
+  "consultations.column.lead": "Interessent",
+  "consultations.column.scheduled": "Geplant",
   "consultations.status.requested": "Requested",
   "consultations.status.confirmed": "Confirmed",
   "consultations.status.completed": "Completed",
@@ -2084,6 +2087,10 @@ export const DE: Partial<Dict> = {
   "reminders.placeholderDescription":
     "The reminder queue endpoint is not wired yet.",
   "reminders.placeholderAction": "Open queue",
+  "reminders.sweep": "Erinnerungslauf starten",
+  "reminders.detailTitle": "Erinnerungsdetails",
+  "reminders.detail.kind": "Art",
+  "reminders.column.due": "Fällig",
   "reminders.kind.requestDue": "Request due",
   "reminders.kind.docExpiry": "Document expiry",
   "reminders.kind.caseStale": "Stale case",

@@ -42,8 +42,8 @@ export async function getVoiceCommands(orgId: string, filters?: {
   return db.voiceCommand.findMany({
     where: {
       orgId,
-      ...(filters?.userId ? { userId: filters.userId } : {}),
-      ...(filters?.status ? { status: filters.status } : {}),
+      ...(filters?.userId ? { userId: filters.userId } : undefined),
+      ...(filters?.status ? { status: filters.status } : undefined),
     },
     orderBy: { createdAt: "desc" },
   });

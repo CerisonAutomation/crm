@@ -272,7 +272,7 @@ export async function listCalls(
   const rows = await db.callSession.findMany({
     where: {
       ...caseFilter,
-      ...(opts.active ? { status: { in: ["RINGING", "ACTIVE"] } } : {}),
+      ...(opts.active ? { status: { in: ["RINGING", "ACTIVE"] } } : undefined),
       ...scope,
     },
     include: CALL_INCLUDE,

@@ -365,7 +365,7 @@ export function buildCounterCase(
         statement: `${f.label} is not met — ${f.detail}`,
         rebuttal: `Evidence that satisfies "${f.label}", or a documented waiver.`,
         provenance: `rule:${f.rule}`,
-        ...(key ? { documentKey: key } : {}),
+        ...(key ? { documentKey: key } : undefined),
       });
     } else if (f.result === "UNKNOWN") {
       grounds.push({
@@ -375,7 +375,7 @@ export function buildCounterCase(
         statement: `${f.label} cannot be assessed — an answer is missing, so the rule is neither cleared nor failed.`,
         rebuttal: `Supply the missing answer. ${f.detail}`,
         provenance: `rule:${f.rule}`,
-        ...(key ? { documentKey: key } : {}),
+        ...(key ? { documentKey: key } : undefined),
       });
     }
   }

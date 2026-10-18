@@ -9,7 +9,7 @@ const SECTION_KEYS = SETTINGS_SECTIONS.map((s) => s.key);
 const jsonContent = (schema: Record<string, unknown>) => ({ "application/json": { schema } });
 const jsonResponse = (description: string, schema?: Record<string, unknown>) => ({
   description,
-  ...(schema ? { content: jsonContent(schema) } : {}),
+  ...(schema ? { content: jsonContent(schema) } : undefined),
 });
 const ERROR_RESPONSES = {
   400: jsonResponse("Validation error", { $ref: "#/components/schemas/Error" }),

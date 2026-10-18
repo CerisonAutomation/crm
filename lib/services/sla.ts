@@ -80,7 +80,7 @@ export async function getSLAClocks(
   return db.sLAClock.findMany({
     where: {
       orgId,
-      ...(caseId ? { caseId } : {}),
+      ...(caseId ? { caseId } : undefined),
     },
     orderBy: { createdAt: "desc" },
   });

@@ -172,7 +172,7 @@ const vercelDriver: StorageDriver = {
     const token = process.env.BLOB_READ_WRITE_TOKEN;
     await put(relKey, bytes, {
       access: "private",
-      ...(token ? { token } : {}),
+      ...(token ? { token } : undefined),
       addRandomSuffix: false,
     });
   },
@@ -183,7 +183,7 @@ const vercelDriver: StorageDriver = {
       const token = process.env.BLOB_READ_WRITE_TOKEN;
       const res = await blobGet(relKey, {
         access: "private",
-        ...(token ? { token } : {}),
+        ...(token ? { token } : undefined),
       });
       if (!res?.stream) return null;
       const reader = res.stream.getReader();
@@ -201,7 +201,7 @@ const vercelDriver: StorageDriver = {
   async exists(relKey) {
     try {
       const token = process.env.BLOB_READ_WRITE_TOKEN;
-      const res = await head(relKey, { ...(token ? { token } : {}) });
+      const res = await head(relKey, { ...(token ? { token } : undefined) });
       return res !== null;
     } catch {
       return false;
@@ -210,7 +210,7 @@ const vercelDriver: StorageDriver = {
   async delete(relKey) {
     try {
       const token = process.env.BLOB_READ_WRITE_TOKEN;
-      await del(relKey, { ...(token ? { token } : {}) });
+      await del(relKey, { ...(token ? { token } : undefined) });
     } catch {
       // Best-effort: a missing blob is already the desired end state.
     }

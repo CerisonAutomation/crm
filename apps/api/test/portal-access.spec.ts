@@ -12,7 +12,13 @@ class InMemoryPortalDb {
 
 	portalAccessCode = {
 		create: async ({ data }: { data: Row }) => {
-			const row = { createdAt: new Date(), usedCount: 0, revokedAt: null, ...data, id: data.id ?? `p-${++this.seq}` };
+			const row = {
+				createdAt: new Date(),
+				usedCount: 0,
+				revokedAt: null,
+				...data,
+				id: data.id ?? `p-${++this.seq}`,
+			};
 			this.rows.push(row);
 			return row;
 		},
@@ -22,7 +28,13 @@ class InMemoryPortalDb {
 			this.rows.filter((row) =>
 				Object.entries(where).every(([key, value]) => row[key] === value),
 			),
-		updateMany: async ({ where, data }: { where: Record<string, unknown>; data: Record<string, unknown> }) => {
+		updateMany: async ({
+			where,
+			data,
+		}: {
+			where: Record<string, unknown>;
+			data: Record<string, unknown>;
+		}) => {
 			const hits = this.rows.filter((row) =>
 				Object.entries(where).every(([key, value]) => {
 					if (value === null) return row[key] === null;
@@ -43,7 +55,9 @@ function service(): { portal: PortalAccessService; db: InMemoryPortalDb } {
 describe("portal access codes (hashed + CAS consume)", () => {
 	it("returns the raw code once and stores only its hash", async () => {
 		const { portal, db } = service();
-		const issued = await portal.issue("user-1", "Client portal", { maxUses: 2 });
+		const issued = await portal.issue("user-1", "Client portal", {
+			maxUses: 2,
+		});
 		expect(issued.code.length).toBe(48);
 		expect(db.rows[0]?.codeHash).toBe(hashCode(issued.code));
 		expect(JSON.stringify(db.rows[0])).not.toContain(issued.code);
@@ -63,16 +77,25 @@ describe("portal access codes (hashed + CAS consume)", () => {
 
 	it("rejects unknown, expired and revoked codes", async () => {
 		const { portal } = service();
-		expect(await portal.consume("nope")).toEqual({ ok: false, reason: "unknown_code" });
+		expect(await portal.consume("nope")).toEqual({
+			ok: false,
+			reason: "unknown_code",
+		});
 
 		const expired = await portal.issue("user-1", "old", {
 			expiresAt: new Date(Date.now() - 1000),
 		});
-		expect(await portal.consume(expired.code)).toEqual({ ok: false, reason: "expired" });
+		expect(await portal.consume(expired.code)).toEqual({
+			ok: false,
+			reason: "expired",
+		});
 
 		const revoked = await portal.issue("user-1", "revoke-me", {});
 		expect(await portal.revoke("user-1", revoked.id)).toBe(true);
-		expect(await portal.consume(revoked.code)).toEqual({ ok: false, reason: "revoked" });
+		expect(await portal.consume(revoked.code)).toEqual({
+			ok: false,
+			reason: "revoked",
+		});
 		expect(await portal.revoke("user-1", revoked.id)).toBe(false);
 	});
 

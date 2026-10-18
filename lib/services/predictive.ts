@@ -269,7 +269,7 @@ export async function getActiveInterventions(orgId: string, caseId?: string) {
     where: {
       orgId,
       status: "pending",
-      ...(caseId ? { caseId } : {}),
+      ...(caseId ? { caseId } : undefined),
     },
     orderBy: { createdAt: "desc" },
   });

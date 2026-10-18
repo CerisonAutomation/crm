@@ -49,7 +49,9 @@ export class WebhookNonRetryableFailure extends Error {
 	readonly statusCode: number;
 
 	constructor(statusCode: number, responseMessage: string | null) {
-		super(`Webhook endpoint rejected the delivery with HTTP ${statusCode}: ${responseMessage ?? ""}`.trim());
+		super(
+			`Webhook endpoint rejected the delivery with HTTP ${statusCode}: ${responseMessage ?? ""}`.trim(),
+		);
 		this.name = "WebhookNonRetryableFailure";
 		this.statusCode = statusCode;
 	}
@@ -61,7 +63,8 @@ export const RETRYABLE_4XX = new Set([408, 425, 429]);
 export function isRetryableStatus(statusCode: number | null): boolean {
 	if (statusCode === null) return true;
 	if (statusCode >= 500) return true;
-	if (statusCode >= 400 && statusCode < 500) return RETRYABLE_4XX.has(statusCode);
+	if (statusCode >= 400 && statusCode < 500)
+		return RETRYABLE_4XX.has(statusCode);
 	return true;
 }
 
@@ -71,7 +74,11 @@ export function isNonRetryable(error: unknown): boolean {
 	if (error instanceof WorkflowNonRetryableError) return true;
 	if (error instanceof WebhookNonRetryableFailure) return true;
 	const flagged = error as MaybeNonRetryable | null;
-	return typeof flagged === "object" && flagged !== null && flagged.nonRetryable === true;
+	return (
+		typeof flagged === "object" &&
+		flagged !== null &&
+		flagged.nonRetryable === true
+	);
 }
 
 /**

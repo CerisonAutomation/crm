@@ -19,11 +19,11 @@ export async function POST(req: NextRequest) {
     const comment = body.comment?.trim();
     if (comment && comment.length > 500) throw new DomainError("comment must be 500 characters or fewer", 400);
     if (!body.runId) throw new DomainError("runId is required", 400);
-    const run = await db.aiRun.findFirst({ where: { id: body.runId, orgId: ctx.orgId, ...(body.caseId ? { caseId: body.caseId } : {}) }, select: { id: true, caseId: true } });
+    const run = await db.aiRun.findFirst({ where: { id: body.runId, orgId: ctx.orgId, ...(body.caseId ? { caseId: body.caseId } : undefined) }, select: { id: true, caseId: true } });
     if (!run) throw new DomainError("AI run not found", 404);
     if (body.caseId) {
       const own = await db.case.findFirst({
-        where: { id: body.caseId, orgId: ctx.orgId, ...(ctx.role === "CLIENT" ? { clientId: ctx.userId } : {}) },
+        where: { id: body.caseId, orgId: ctx.orgId, ...(ctx.role === "CLIENT" ? { clientId: ctx.userId } : undefined) },
         select: { id: true },
       });
       if (!own) throw new DomainError("Forbidden", 403);

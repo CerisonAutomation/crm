@@ -12,7 +12,9 @@ export function jsonText(value: JsonValue | undefined): string | undefined {
 	return isJsonText(value) ? value : undefined;
 }
 
-function isJsonObject(value: JsonValue | undefined): value is JsonObject {
+export function isJsonObject(
+	value: JsonValue | undefined,
+): value is JsonObject {
 	return value instanceof Object && !Array.isArray(value);
 }
 

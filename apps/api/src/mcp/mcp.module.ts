@@ -3,16 +3,16 @@
  */
 
 import { Module } from "@nestjs/common";
-import { DatabaseModule } from "../database/database.module";
-import { BookingModule } from "../booking/booking.module";
-import { ChannelsModule } from "../channels/channels.module";
-import { BrainModule } from "../brain/brain.module";
 import { AgentGovernanceModule } from "../agent-governance/agent-governance.module";
-import { WorkflowsModule } from "../workflows/workflows.module";
+import { BookingModule } from "../booking/booking.module";
+import { BrainModule } from "../brain/brain.module";
+import { ChannelsModule } from "../channels/channels.module";
+import { DatabaseModule } from "../database/database.module";
 import { RoutinesModule } from "../routines/routines.module";
-import { McpToolsService } from "./mcp-tools.service";
-import { McpServerService } from "./mcp-server.service";
+import { WorkflowsModule } from "../workflows/workflows.module";
 import { McpController } from "./mcp.controller";
+import { McpServerService } from "./mcp-server.service";
+import { McpToolsService } from "./mcp-tools.service";
 
 @Module({
 	imports: [

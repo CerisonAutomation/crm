@@ -52,8 +52,8 @@ export async function getAvailabilities(orgId: string, filters?: {
     return await db.availability.findMany({
       where: {
         orgId,
-        ...(filters?.userId ? { userId: filters.userId } : {}),
-        ...(filters?.dayOfWeek !== undefined ? { dayOfWeek: filters.dayOfWeek } : {}),
+        ...(filters?.userId ? { userId: filters.userId } : undefined),
+        ...(filters?.dayOfWeek !== undefined ? { dayOfWeek: filters.dayOfWeek } : undefined),
       },
       orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }],
     });

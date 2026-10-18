@@ -40,7 +40,7 @@ type Recognition = {
 type RecognitionCtor = new () => Recognition;
 
 function recognitionCtor(): RecognitionCtor | null {
-  if (typeof window === "undefined") return null;
+  if (globalThis.window === undefined) return null;
   const w = window as unknown as {
     SpeechRecognition?: RecognitionCtor;
     webkitSpeechRecognition?: RecognitionCtor;

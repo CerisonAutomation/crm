@@ -2,9 +2,9 @@
  * Prisma-backed adapters for the workflow runner ports.
  */
 
+import type { Db, Prisma } from "@crm/db";
 import { Injectable } from "@nestjs/common";
 import { InjectDatabase } from "../database/database.constants";
-import type { Db, Prisma } from "@crm/db";
 import type { WorkflowFailure } from "./workflow-errors";
 import type {
 	WorkflowRunRecord,
@@ -32,7 +32,11 @@ export class PrismaWorkflowRunRepository implements WorkflowRunRepository {
 	async markRunning(id: string): Promise<number> {
 		const updated = await this.db.workflowRun.update({
 			where: { id },
-			data: { status: "running", startedAt: new Date(), attemptCount: { increment: 1 } },
+			data: {
+				status: "running",
+				startedAt: new Date(),
+				attemptCount: { increment: 1 },
+			},
 			select: { attemptCount: true },
 		});
 		return updated.attemptCount;
@@ -45,7 +49,11 @@ export class PrismaWorkflowRunRepository implements WorkflowRunRepository {
 		});
 	}
 
-	async markFailed(id: string, failure: WorkflowFailure, expected: boolean): Promise<void> {
+	async markFailed(
+		id: string,
+		failure: WorkflowFailure,
+		expected: boolean,
+	): Promise<void> {
 		await this.db.workflowRun.update({
 			where: { id },
 			data: {
@@ -69,7 +77,8 @@ export class PrismaWorkflowRunRepository implements WorkflowRunRepository {
 				status: "abandoned",
 				finishedAt: new Date(),
 				failureName: "WorkflowAbandoned",
-				failureMessage: "Run had no heartbeat before the recovery sweep; the API process likely restarted.",
+				failureMessage:
+					"Run had no heartbeat before the recovery sweep; the API process likely restarted.",
 				failureExpected: true,
 			},
 		});
@@ -78,7 +87,9 @@ export class PrismaWorkflowRunRepository implements WorkflowRunRepository {
 }
 
 @Injectable()
-export class PrismaWorkflowStepRunRepository implements WorkflowStepRunRepository {
+export class PrismaWorkflowStepRunRepository
+	implements WorkflowStepRunRepository
+{
 	constructor(@InjectDatabase() private readonly db: Db) {}
 
 	async create(record: WorkflowStepRunRecord): Promise<void> {
@@ -99,7 +110,12 @@ export class PrismaWorkflowStepRunRepository implements WorkflowStepRunRepositor
 		});
 	}
 
-	async markFailed(id: string, attempt: number, failure: WorkflowFailure, willRetry: boolean): Promise<void> {
+	async markFailed(
+		id: string,
+		attempt: number,
+		failure: WorkflowFailure,
+		willRetry: boolean,
+	): Promise<void> {
 		await this.db.workflowStepRun.update({
 			where: { id },
 			data: {
@@ -115,7 +131,11 @@ export class PrismaWorkflowStepRunRepository implements WorkflowStepRunRepositor
 	async markSucceeded(id: string, attempt: number): Promise<void> {
 		await this.db.workflowStepRun.update({
 			where: { id },
-			data: { status: "succeeded", attemptCount: attempt, finishedAt: new Date() },
+			data: {
+				status: "succeeded",
+				attemptCount: attempt,
+				finishedAt: new Date(),
+			},
 		});
 	}
 }

@@ -7,6 +7,7 @@ import {
   checkAutomationAlerts,
   getActiveAutomationAlerts,
   acknowledgeAutomationAlert,
+  type Alert as AutomationAlert,
 } from "@/lib/services/alerts-client";
 import { Fragment, useEffect, useState } from "react";
 import { format } from "date-fns";
@@ -75,6 +76,10 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -82,7 +87,11 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Tooltip } from "@/components/ui/tooltip";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { useDebouncedCallback } from "@/hooks";
@@ -151,6 +160,9 @@ type AutomationStatus = Awaited<ReturnType<typeof api.automationStatus>>;
 
 const ROLES = ["CLIENT", "RM", "SENIOR_RM", "ADMIN", "AUDITOR"] as const;
 
+/** Page size for the admin users table — long enough to scan, short enough to load. */
+const USERS_PAGE_SIZE = 20;
+
 function fmtDate(d: string | null | undefined): string {
   if (!d) return "—";
   try {
@@ -172,6 +184,14 @@ function fmtDay(d: string | null | undefined): string {
 function truncate(s: string | null | undefined, n: number): string {
   if (!s) return "—";
   return s.length > n ? `${s.slice(0, n - 1)}…` : s;
+}
+
+/** Wall-clock time for the automation ledgers (date is in the adjacent column). */
+function fmtTime(d: string | null | undefined): string {
+  if (!d) return "—";
+  const parsed = new Date(d);
+  if (Number.isNaN(parsed.getTime())) return "—";
+  return parsed.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
 function AdminHeader({
@@ -1020,7 +1040,7 @@ export function AdminUsers() {
                 columns={[
                   createColumnHelper<any>().accessor("name", {
                     header: "Name",
-                    cell: ({ row }) => (
+                    cell: ({ row: { original: row } }) => (
                       <TableCell className="text-sm font-medium text-cobble-ink">
                         {row.name}
                       </TableCell>
@@ -1028,7 +1048,7 @@ export function AdminUsers() {
                   }),
                   createColumnHelper<any>().accessor("email", {
                     header: "Email",
-                    cell: ({ row }) => (
+                    cell: ({ row: { original: row } }) => (
                       <TableCell className="text-sm text-muted-foreground truncate w-36">
                         {row.email}
                       </TableCell>
@@ -1036,7 +1056,7 @@ export function AdminUsers() {
                   }),
                   createColumnHelper<any>().accessor("role", {
                     header: "Role",
-                    cell: ({ row }) => (
+                    cell: ({ row: { original: row } }) => (
                       <TableCell>
                         <Badge
                           variant={
@@ -1052,7 +1072,7 @@ export function AdminUsers() {
                   createColumnHelper<any>()
                     .accessor("status", {
                       header: "Status",
-                      cell: ({ row }) => (
+                      cell: ({ row: { original: row } }) => (
                         <TableCell>
                           <StateBadge state={row.status} />
                         </TableCell>
@@ -1060,7 +1080,7 @@ export function AdminUsers() {
                     }),
                   createColumnHelper<any>().accessor("lastSeenAt", {
                     header: "Last seen",
-                    cell: ({ row }) => (
+                    cell: ({ row: { original: row } }) => (
                       <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                         {row.lastSeenAt ? fmtDay(row.lastSeenAt) : "Never"}
                       </TableCell>
@@ -1068,7 +1088,7 @@ export function AdminUsers() {
                   }),
                   createColumnHelper<any>().accessor("id", {
                     header: "Actions",
-                    cell: ({ row }) => (
+                    cell: ({ row: { original: row } }) => (
                       <TableCell className="text-right text-xs">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -1076,33 +1096,44 @@ export function AdminUsers() {
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-[8rem]">
+                          <DropdownMenuContent align="end" className="w-[11rem]">
+                            <DropdownMenuSub>
+                              <DropdownMenuSubTrigger>
+                                Change role
+                              </DropdownMenuSubTrigger>
+                              <DropdownMenuSubContent>
+                                {ROLES.filter((r) => r !== row.role).map((r) => (
+                                  <DropdownMenuItem
+                                    key={r}
+                                    disabled={busyId === row.id}
+                                    onClick={() => openRole(row, r)}
+                                  >
+                                    {r.replace("_", " ")}
+                                  </DropdownMenuItem>
+                                ))}
+                              </DropdownMenuSubContent>
+                            </DropdownMenuSub>
                             <DropdownMenuItem
-                              onClick={() => void handleInviteUser(row.email)}
-                              disabled={
-                                inviting === row.id || !isEditionAllowed()
+                              disabled={busyId === row.id}
+                              onClick={() =>
+                                openStatus(
+                                  row,
+                                  row.status === "DEACTIVATED"
+                                    ? "ACTIVE"
+                                    : "DEACTIVATED",
+                                )
                               }
                             >
-                              {inviting === row.id ? (
-                                <Spinner className="mr-2 h-3 w-3" />
-                              ) : (
-                                <Mail className="mr-2 h-3 w-3" />
-                              )}
-                              Resend invite
+                              {row.status === "DEACTIVATED"
+                                ? "Reactivate"
+                                : "Deactivate"}
                             </DropdownMenuItem>
+                            <DropdownMenuSeparator />
                             <DropdownMenuItem
-                              onClick={() => void handleDeleteUser(row.id)}
-                              className="text-danger"
-                              disabled={
-                                deleting === row.id || !isEditionAllowed()
-                              }
+                              disabled={busyId === row.id}
+                              onClick={() => openRevoke(row)}
                             >
-                              {deleting === row.id ? (
-                                <Spinner className="mr-2 h-3 w-3" />
-                              ) : (
-                                <Trash2 className="mr-2 h-3 w-3" />
-                              )}
-                              Delete user
+                              Revoke sessions
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -1113,7 +1144,7 @@ export function AdminUsers() {
                 data={users}
                 enableSorting={true}
                 enablePagination={true}
-                pageSize={usersPageSize}
+                pageSize={USERS_PAGE_SIZE}
                 className="w-full"
                 emptyMessage="No users yet"
               />
@@ -1131,14 +1162,14 @@ export function AdminUsers() {
                 columns={[
                   createColumnHelper<any>().accessor("role", {
                     header: "Role",
-                    cell: ({ row }) => row.replace("_", " "),
+                    cell: ({ row: { original: row } }) => row.replace("_", " "),
                   }),
                   createColumnHelper<any>().accessor("scope", {
                     header: "Scope",
-                    cell: ({ row }) => ROLE_SCOPE[row],
+                    cell: ({ row: { original: row } }) => ROLE_SCOPE[row],
                   }),
                 ]}
-                data={ROLES}
+                data={[...ROLES]}
                 enableSorting={false}
                 enablePagination={false}
                 className="w-full"
@@ -1538,7 +1569,7 @@ export function AdminAudit() {
             columns={[
               createColumnHelper<any>().accessor("createdAt", {
                 header: "Time",
-                cell: ({ row }) => (
+                cell: ({ row: { original: row } }) => (
                   <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
                     {fmtDate(row.createdAt)}
                   </TableCell>
@@ -1546,7 +1577,7 @@ export function AdminAudit() {
               }),
               createColumnHelper<any>().accessor("actorLabel", {
                 header: "Actor",
-                cell: ({ row }) => (
+                cell: ({ row: { original: row } }) => (
                   <TableCell className="text-sm text-cobble-ink">
                     {truncate(row.actorLabel, 24)}
                   </TableCell>
@@ -1554,7 +1585,7 @@ export function AdminAudit() {
               }),
               createColumnHelper<any>().accessor("action", {
                 header: "Action",
-                cell: ({ row }) => (
+                cell: ({ row: { original: row } }) => (
                   <TableCell>
                     <Badge
                       variant="outline"
@@ -1567,7 +1598,7 @@ export function AdminAudit() {
               }),
               createColumnHelper<any>().accessor("target", {
                 header: "Target",
-                cell: ({ row }) => (
+                cell: ({ row: { original: row } }) => (
                   <TableCell className="text-sm text-iron-ink">
                     {truncate(row.target, 26)}
                   </TableCell>
@@ -1575,7 +1606,7 @@ export function AdminAudit() {
               }),
               createColumnHelper<any>().accessor("reason", {
                 header: "Reason",
-                cell: ({ row }) => (
+                cell: ({ row: { original: row } }) => (
                   <TableCell className="text-xs text-muted-foreground">
                     {truncate(row.reason, 40)}
                   </TableCell>
@@ -1583,7 +1614,7 @@ export function AdminAudit() {
               }),
               createColumnHelper<any>().accessor("id", {
                 header: "Change",
-                cell: ({ row }) => (
+                cell: ({ row: { original: row } }) => (
                   <TableCell>
                     {!row.before && !row.after ? (
                       <span className="text-xs text-muted-foreground">—</span>
@@ -1766,7 +1797,7 @@ export function AdminPieces() {
                 createColumnHelper<any>().accessor("key", { header: "Key" }),
                 createColumnHelper<any>().accessor("name", {
                   header: "Name",
-                  cell: ({ row }) => (
+                  cell: ({ row: { original: row } }) => (
                     <>
                       <p className="text-sm font-medium text-cobble-ink">
                         {row.name}
@@ -1779,7 +1810,7 @@ export function AdminPieces() {
                 }),
                 createColumnHelper<any>().accessor("category", {
                   header: "Category",
-                  cell: ({ row }) => (
+                  cell: ({ row: { original: row } }) => (
                     <Badge variant="outline" className="text-[10px]">
                       {row.category}
                     </Badge>
@@ -1787,7 +1818,7 @@ export function AdminPieces() {
                 }),
                 createColumnHelper<any>().accessor("dataClass", {
                   header: "Data class",
-                  cell: ({ row }) => (
+                  cell: ({ row: { original: row } }) => (
                     <StatusBadge
                       status={row.dataClass}
                       tone={DATA_CLASS_TONES[row.dataClass] ?? "neutral"}
@@ -1796,7 +1827,7 @@ export function AdminPieces() {
                 }),
                 createColumnHelper<any>().accessor("authReq", {
                   header: "Auth",
-                  cell: ({ row }) => (
+                  cell: ({ row: { original: row } }) => (
                     <TableCell className="text-xs text-muted-foreground">
                       {row.authReq}
                     </TableCell>
@@ -1804,7 +1835,7 @@ export function AdminPieces() {
                 }),
                 createColumnHelper<any>().accessor("enabled", {
                   header: "Enabled",
-                  cell: ({ row }) => (
+                  cell: ({ row: { original: row } }) => (
                     <TableCell className="text-right">
                       <Switch
                         checked={row.enabled}
@@ -1850,7 +1881,7 @@ export function AdminPieces() {
                   createColumnHelper<any>()
                     .accessor("pieceKey", {
                       header: "Piece",
-                      cell: ({ row }) => (
+                      cell: ({ row: { original: row } }) => (
                         <TableCell className="font-mono text-xs text-muted-foreground">
                           {row.pieceKey}
                         </TableCell>
@@ -1859,7 +1890,7 @@ export function AdminPieces() {
                   createColumnHelper<any>()
                     .accessor("maskedHint", {
                       header: "Secret ref",
-                      cell: ({ row }) => (
+                      cell: ({ row: { original: row } }) => (
                         <TableCell className="font-mono text-xs text-iron-ink">
                           {row.maskedHint}
                         </TableCell>
@@ -1868,7 +1899,7 @@ export function AdminPieces() {
                   createColumnHelper<any>()
                     .accessor("scopes", {
                       header: "Scopes",
-                      cell: ({ row }) => {
+                      cell: ({ row: { original: row } }) => {
                         let scopes: string[] = [];
                         try {
                           const parsed: unknown = JSON.parse(row.scopes);
@@ -1906,7 +1937,7 @@ export function AdminPieces() {
                   createColumnHelper<any>()
                     .accessor("status", {
                       header: "Status",
-                      cell: ({ row }) => (
+                      cell: ({ row: { original: row } }) => (
                         <TableCell>
                           <StateBadge state={row.status} />
                         </TableCell>
@@ -1915,7 +1946,7 @@ export function AdminPieces() {
                   createColumnHelper<any>()
                     .accessor("expiresAt", {
                       header: "Expires",
-                      cell: ({ row }) => {
+                      cell: ({ row: { original: row } }) => {
                         const expiringSoon =
                           !!row.expiresAt &&
                           new Date(row.expiresAt).getTime() < soonThreshold;
@@ -1936,7 +1967,7 @@ export function AdminPieces() {
                   createColumnHelper<any>()
                     .accessor("id", {
                       header: "Rotate",
-                      cell: ({ row }) => (
+                      cell: ({ row: { original: row } }) => (
                         <TableCell className="text-right">
                           <Button
                             variant="outline"
@@ -2085,7 +2116,7 @@ export function AdminNotifications() {
                   columns={[
                     createColumnHelper<any>().accessor("createdAt", {
                       header: "Time",
-                      cell: ({ row }) => (
+                      cell: ({ row: { original: row } }) => (
                         <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
                           {fmtDate(row.createdAt)}
                         </TableCell>
@@ -2093,7 +2124,7 @@ export function AdminNotifications() {
                     }),
                     createColumnHelper<any>().accessor("user", {
                       header: "User",
-                      cell: ({ row }) => (
+                      cell: ({ row: { original: row } }) => (
                         <>
                           <p className="text-sm text-cobble-ink">
                             {row.user.name}
@@ -2106,7 +2137,7 @@ export function AdminNotifications() {
                     }),
                     createColumnHelper<any>().accessor("title", {
                       header: "Title",
-                      cell: ({ row }) => (
+                      cell: ({ row: { original: row } }) => (
                         <TableCell className="text-sm text-iron-ink">
                           {truncate(row.title, 44)}
                         </TableCell>
@@ -2114,7 +2145,7 @@ export function AdminNotifications() {
                     }),
                     createColumnHelper<any>().accessor("channel", {
                       header: "Channel",
-                      cell: ({ row }) => (
+                      cell: ({ row: { original: row } }) => (
                         <TableCell>
                           <StatusBadge
                             status={row.channel.replace("_", "-")}
@@ -2125,7 +2156,7 @@ export function AdminNotifications() {
                     }),
                     createColumnHelper<any>().accessor("status", {
                       header: "Status",
-                      cell: ({ row }) => (
+                      cell: ({ row: { original: row } }) => (
                         <TableCell>
                           <StateBadge state={row.status} />
                         </TableCell>
@@ -2133,7 +2164,7 @@ export function AdminNotifications() {
                     }),
                     createColumnHelper<any>().accessor("id", {
                       header: "Retry",
-                      cell: ({ row }) => (
+                      cell: ({ row: { original: row } }) => (
                         <TableCell className="text-right">
                           {row.status === "FAILED" ||
                           row.status === "DEAD_LETTER" ? (
@@ -3235,7 +3266,9 @@ export function AdminAutomation() {
   );
   const [pinging, setPinging] = useState(false);
   // Alerting state
-  const [automationAlerts, setAutomationAlerts] = useState<Array<Alert>>([]);
+  const [automationAlerts, setAutomationAlerts] = useState<
+    AutomationAlert[]
+  >([]);
   const [alertsLoading, setAlertsLoading] = useState(false);
   const [alertsError, setAlertsError] = useState<string | null>(null);
   const session = useApp((s) => s.session);
@@ -3388,6 +3421,22 @@ export function AdminAutomation() {
     }
   }
 
+  /** Load one job's full history (payload, timeline, attempt ledger) into the inspector. */
+  async function viewJobTimeline(id: string) {
+    setExpandedJobId(id);
+    try {
+      const res = await api.automationJob(id);
+      setJobDetails(res);
+      setJobTimelineError(null);
+    } catch (e) {
+      toast({
+        title: "Could not load job",
+        description: e instanceof Error ? e.message : t("auto.unknownError"),
+        variant: "destructive",
+      });
+    }
+  }
+
   return (
     <PageShell>
       <AdminHeader
@@ -3501,64 +3550,73 @@ export function AdminAutomation() {
               <div className="mt-4 overflow-x-auto rounded-md border border-border/60">
                 <DataTable
                   columns={[
-                    createColumnHelper<any>().accessor("job", {
+                    createColumnHelper<any>().accessor("topic", {
                       header: "Job",
-                      cell: ({ row }) => (
+                      cell: ({ row: { original: row } }) => (
                         <TableCell className="font-medium text-sm text-cobble-ink">
-                          {row.job.name}
+                          {row.topic}
                         </TableCell>
                       ),
                     }),
-                    createColumnHelper<any>().accessor("lastRunAt", {
-                      header: "Last run",
-                      cell: ({ row }) => (
+                    createColumnHelper<any>().accessor("finishedAt", {
+                      header: "Finished",
+                      cell: ({ row: { original: row } }) => (
                         <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                          {fmtDay(row.lastRunAt)}
+                          {fmtDay(row.finishedAt)}
                         </TableCell>
                       ),
                     }),
-                    createColumnHelper<any>().accessor("failureCount", {
-                      header: "Failures",
-                      cell: ({ row }) => (
+                    createColumnHelper<any>().accessor("attempts", {
+                      header: "Attempts",
+                      cell: ({ row: { original: row } }) => (
                         <TableCell className="text-right text-sm text-muted-foreground">
-                          {row.failureCount}
+                          {row.attempts}/{row.maxAttempts}
                         </TableCell>
                       ),
                     }),
                     createColumnHelper<any>().accessor("lastError", {
                       header: "Last error",
-                      cell: ({ row }) => (
-                        <TableCell className="text-sm text-danger-ink w-40">
-                          <Tooltip
-                            content={row.lastError || ""}
-                            delayDuration={150}
-                            side="top"
-                            sideOffset={4}
-                          >
-                            <div className="font-mono">
-                              {truncate(row.lastError || "", 30)}
-                            </div>
+                      cell: ({ row: { original: row } }) => (
+                        <TableCell className="w-40 text-sm text-danger-ink">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="font-mono">
+                                {truncate(row.lastError || "", 30)}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" sideOffset={4}>
+                              <span className="font-mono">
+                                {row.lastError || "—"}
+                              </span>
+                            </TooltipContent>
                           </Tooltip>
                         </TableCell>
                       ),
                     }),
                     createColumnHelper<any>().accessor("id", {
                       header: "Actions",
-                      cell: ({ row }) => (
+                      cell: ({ row: { original: row } }) => (
                         <TableCell className="text-right text-xs">
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => void clearDeadJob(row.id)}
+                            disabled={requeueingId === row.id}
+                            onClick={() =>
+                              void requeueDeadJob(row.id, row.topic)
+                            }
                           >
-                            <Trash2 className="mr-1 h-3 w-3" />
-                            Clear
+                            {requeueingId === row.id ? (
+                              <Spinner className="mr-1 h-3 w-3" />
+                            ) : (
+                              <RefreshCcw className="mr-1 h-3 w-3" />
+                            )}
+                            Requeue
                           </Button>
                         </TableCell>
                       ),
                     }),
                   ]}
-                  data={deadJobs}
+                  data={data.dead ?? []}
                   enableSorting={true}
                   enablePagination={false}
                   className="w-full"
@@ -3696,44 +3754,49 @@ export function AdminAutomation() {
                 <div className="overflow-x-auto">
                   <DataTable
                     columns={[
-                      createColumnHelper<any>()
-                        .accessor("jobName", {
-                          header: "Job",
-                          cell: ({ row }) => (
-                            <TableCell className="font-medium text-sm text-cobble-ink">
-                              {row.jobName}
-                            </TableCell>
-                          ),
-                        }),
-                      createColumnHelper<any>()
-                        .accessor("runAt", {
-                          header: "Run at",
-                          cell: ({ row }) => (
-                            <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                              {fmtTime(row.runAt)}
-                            </TableCell>
-                          ),
-                        }),
-                      createColumnHelper<any>()
-                        .accessor("status", {
-                          header: "Status",
-                          cell: ({ row }) => (
-                            <TableCell>
-                              <StateBadge state={row.status} />
-                            </TableCell>
-                          ),
-                        }),
-                      createColumnHelper<any>()
-                        .accessor("triggeredBy", {
-                          header: "Triggered by",
-                          cell: ({ row }) => (
-                            <TableCell className="text-sm text-muted-foreground">
-                              {row.triggeredBy}
-                            </TableCell>
-                          ),
-                        }),
-                      createColumnHelper<any>()
-                        .accessor("id", ({ row }) => (
+                      createColumnHelper<any>().accessor("topic", {
+                        header: "Job",
+                        cell: ({ row: { original: row } }) => (
+                          <TableCell className="font-medium text-sm text-cobble-ink">
+                            {row.topic}
+                          </TableCell>
+                        ),
+                      }),
+                      createColumnHelper<any>().accessor("createdAt", {
+                        header: "Queued at",
+                        cell: ({ row: { original: row } }) => (
+                          <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
+                            {fmtDay(row.createdAt)} {fmtTime(row.createdAt)}
+                          </TableCell>
+                        ),
+                      }),
+                      createColumnHelper<any>().accessor("status", {
+                        header: "Status",
+                        cell: ({ row: { original: row } }) => (
+                          <TableCell>
+                            <StateBadge state={row.status} />
+                          </TableCell>
+                        ),
+                      }),
+                      createColumnHelper<any>().accessor("attempts", {
+                        header: "Attempts",
+                        cell: ({ row: { original: row } }) => (
+                          <TableCell className="text-sm text-muted-foreground">
+                            {row.attempts}/{row.maxAttempts}
+                          </TableCell>
+                        ),
+                      }),
+                      createColumnHelper<any>().accessor("claimedBy", {
+                        header: "Worker",
+                        cell: ({ row: { original: row } }) => (
+                          <TableCell className="text-sm text-muted-foreground">
+                            {row.claimedBy ?? "—"}
+                          </TableCell>
+                        ),
+                      }),
+                      createColumnHelper<any>().accessor("id", {
+                        header: "Actions",
+                        cell: ({ row: { original: row } }) => (
                           <TableCell className="text-right text-xs">
                             <Button
                               variant="outline"
@@ -3744,8 +3807,8 @@ export function AdminAutomation() {
                               View
                             </Button>
                           </TableCell>
-                        ))
-                        .header("Actions"),
+                        ),
+                      }),
                     ]}
                     data={jobTimeline}
                     enableSorting={true}
@@ -3802,50 +3865,40 @@ export function AdminAutomation() {
               <div className="overflow-x-auto">
                 <DataTable
                   columns={[
-                    createColumnHelper<any>()
-                      .accessor("jobName", ({ row }) => (
+                    createColumnHelper<any>().accessor("topic", {
+                      header: "Event",
+                      cell: ({ row: { original: row } }) => (
                         <TableCell className="font-medium text-sm text-cobble-ink">
-                          {row.jobName}
+                          {row.topic}
                         </TableCell>
-                      ))
-                      .header("Job"),
-                    createColumnHelper<any>()
-                      .accessor("deliveredAt", ({ row }) => (
+                      ),
+                    }),
+                    createColumnHelper<any>().accessor("createdAt", {
+                      header: "Delivered at",
+                      cell: ({ row: { original: row } }) => (
                         <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
-                          {fmtTime(row.deliveredAt)}
+                          {fmtTime(row.createdAt)}
                         </TableCell>
-                      ))
-                      .header("Delivered at"),
-                    createColumnHelper<any>()
-                      .accessor("status", ({ row }) => (
+                      ),
+                    }),
+                    createColumnHelper<any>().accessor("status", {
+                      header: "Status",
+                      cell: ({ row: { original: row } }) => (
                         <TableCell>
                           <StateBadge state={row.status} />
                         </TableCell>
-                      ))
-                      .header("Status"),
-                    createColumnHelper<any>()
-                      .accessor("recipient", ({ row }) => (
-                        <TableCell className="text-sm text-muted-foreground truncate w-32">
-                          {row.recipient}
+                      ),
+                    }),
+                    createColumnHelper<any>().accessor("detail", {
+                      header: "Detail",
+                      cell: ({ row: { original: row } }) => (
+                        <TableCell className="max-w-xs truncate text-sm text-muted-foreground">
+                          {row.detail ?? "—"}
                         </TableCell>
-                      ))
-                      .header("Recipient"),
-                    createColumnHelper<any>()
-                      .accessor("id", ({ row }) => (
-                        <TableCell className="text-right text-xs">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => void viewDelivery(row.id)}
-                          >
-                            <Eye className="mr-1 h-3 w-3" />
-                            View
-                          </Button>
-                        </TableCell>
-                      ))
-                      .header("Actions"),
+                      ),
+                    }),
                   ]}
-                  data={recentDeliveries}
+                  data={data.recent}
                   enableSorting={true}
                   enablePagination={false}
                   className="w-full"
@@ -3865,6 +3918,95 @@ export function AdminAutomation() {
           <AutopilotPanel />
         </div>
       )}
+
+      {/* Job inspector — the full history of one automation job */}
+      <Dialog
+        open={jobDetails !== null}
+        onOpenChange={(o) => {
+          if (!o) {
+            setJobDetails(null);
+            setExpandedJobId(null);
+          }
+        }}
+      >
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{jobDetails?.job.topic ?? "Job"}</DialogTitle>
+            <DialogDescription>
+              {jobDetails
+                ? `Status ${jobDetails.job.status} · ${jobDetails.job.attempts}/${jobDetails.job.maxAttempts} attempts · ${jobDetails.job.correlationId ?? "no correlation id"}`
+                : ""}
+            </DialogDescription>
+          </DialogHeader>
+          {jobDetails && (
+            <div className="max-h-[60vh] space-y-4 overflow-y-auto text-sm">
+              <div>
+                <Eyebrow>Timeline</Eyebrow>
+                <ul className="mt-2 space-y-1">
+                  {jobDetails.timeline.map((step, i) => (
+                    <li key={`${step.at}-${i}`} className="flex gap-2">
+                      <span className="font-mono text-xs text-muted-foreground">
+                        {fmtTime(step.at)}
+                      </span>
+                      <span className="text-cobble-ink">{step.event}</span>
+                      {step.detail && (
+                        <span className="text-xs text-muted-foreground">
+                          {step.detail}
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <Eyebrow>Attempts</Eyebrow>
+                <ul className="mt-2 space-y-1">
+                  {jobDetails.attempts.map((attempt) => (
+                    <li
+                      key={attempt.id}
+                      className="flex items-center justify-between gap-2"
+                    >
+                      <span className="text-cobble-ink">
+                        #{attempt.attempt} · {attempt.status}
+                        {attempt.workerId ? ` · ${attempt.workerId}` : ""}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {attempt.durationMs === null
+                          ? fmtTime(attempt.startedAt)
+                          : `${attempt.durationMs}ms`}
+                      </span>
+                    </li>
+                  ))}
+                  {jobDetails.attempts.length === 0 && (
+                    <li className="text-xs text-muted-foreground">
+                      No attempts recorded yet.
+                    </li>
+                  )}
+                </ul>
+              </div>
+              {jobDetails.job.lastError && (
+                <div>
+                  <Eyebrow>Last error</Eyebrow>
+                  <pre className="mt-2 overflow-x-auto rounded border border-border/70 bg-muted/30 p-3 font-mono text-xs text-danger-ink">
+                    {jobDetails.job.lastError}
+                  </pre>
+                </div>
+              )}
+              <div>
+                <Eyebrow>Payload</Eyebrow>
+                <pre className="mt-2 overflow-x-auto rounded border border-border/70 bg-muted/30 p-3 font-mono text-xs text-iron-ink">
+                  {jobDetails.job.payload}
+                </pre>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setJobDetails(null)}>
+              {t("common.close")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PageShell>
   );
 }

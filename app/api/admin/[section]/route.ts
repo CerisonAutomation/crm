@@ -83,8 +83,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ sect
       // AUDITOR of one tenant can never read (or export) another's events.
       const where = {
         orgId: ctx.orgId,
-        ...(action ? { action: { contains: action } } : {}),
-        ...(actor ? { actorLabel: { contains: actor } } : {}),
+        ...(action ? { action: { contains: action } } : undefined),
+        ...(actor ? { actorLabel: { contains: actor } } : undefined),
       };
       const [events, total] = await Promise.all([
         db.auditEvent.findMany({ where, orderBy: { createdAt: "desc" }, skip: (page - 1) * pageSize, take: pageSize }),
@@ -227,7 +227,7 @@ async function adminToggleFlag(ctx: AuthContext, body: AdminBody) {
     ? await db.featureFlag.update({
         where: { key },
         // Preserve the name on a toggle; update it when one is supplied.
-        data: { enabled: Boolean(body.enabled), ...(name ? { name } : {}) },
+        data: { enabled: Boolean(body.enabled), ...(name ? { name } : undefined) },
       })
     : await db.featureFlag.create({
         data: { key, name: name!, enabled: Boolean(body.enabled) },

@@ -16,17 +16,23 @@
  *    error is rethrown; expected failures stay silent.
  */
 
-import { Inject, Injectable, Logger, Optional } from "@nestjs/common";
 import { randomUUID } from "node:crypto";
+import { Inject, Injectable, Logger, Optional } from "@nestjs/common";
 import { reportFailure } from "./capture-failure";
+import { capJson } from "./storage-caps";
 import {
 	isNonRetryable,
 	toWorkflowFailure,
 	type WorkflowTenant,
 } from "./workflow-errors";
-import type { WorkflowRunRepository, WorkflowStepRunRepository } from "./workflow-repository";
-import { capJson } from "./storage-caps";
-import { WORKFLOW_RUN_REPOSITORY, WORKFLOW_STEP_RUN_REPOSITORY } from "./workflow-repository.tokens";
+import type {
+	WorkflowRunRepository,
+	WorkflowStepRunRepository,
+} from "./workflow-repository";
+import {
+	WORKFLOW_RUN_REPOSITORY,
+	WORKFLOW_STEP_RUN_REPOSITORY,
+} from "./workflow-repository.tokens";
 
 export const RETRY_BASE_DELAY_MS = 500;
 export const RETRY_MAX_DELAY_MS = 15_000;
@@ -41,7 +47,11 @@ export type WorkflowDefinition<TInput, TResult> = {
 	handler: (input: TInput, step: StepExecutor) => Promise<TResult>;
 };
 
-export type StepExecutor = <T>(stepName: string, options: StepRunOptions, fn: () => Promise<T>) => Promise<T>;
+export type StepExecutor = <T>(
+	stepName: string,
+	options: StepRunOptions,
+	fn: () => Promise<T>,
+) => Promise<T>;
 
 export function retryDelayMs(retryIndex: number): number {
 	const exponential = RETRY_BASE_DELAY_MS * 2 ** retryIndex;
@@ -84,13 +94,22 @@ export class WorkflowRunner {
 	private readonly logger = new Logger(WorkflowRunner.name);
 
 	constructor(
-		@Inject(WORKFLOW_RUN_REPOSITORY) private readonly runs: WorkflowRunRepository,
-		@Inject(WORKFLOW_STEP_RUN_REPOSITORY) private readonly steps: WorkflowStepRunRepository,
-		@Optional() @Inject(WORKFLOW_LEDGER_TOKEN) private readonly ledger?: WorkflowLedgerPort,
+		@Inject(WORKFLOW_RUN_REPOSITORY)
+		private readonly runs: WorkflowRunRepository,
+		@Inject(WORKFLOW_STEP_RUN_REPOSITORY)
+		private readonly steps: WorkflowStepRunRepository,
+		@Optional()
+		@Inject(WORKFLOW_LEDGER_TOKEN)
+		private readonly ledger?: WorkflowLedgerPort,
 	) {}
 
 	/** Ledger writes are observability: they must never fail the run itself. */
-	private async ledgerEvent(kind: string, runId: string, stepName: string | null, payload: Record<string, unknown>): Promise<void> {
+	private async ledgerEvent(
+		kind: string,
+		runId: string,
+		stepName: string | null,
+		payload: Record<string, unknown>,
+	): Promise<void> {
 		try {
 			await this.ledger?.appendEvent({ runId, stepName, kind, payload });
 		} catch (error) {
@@ -127,7 +146,9 @@ export class WorkflowRunner {
 			input: capJson(input) as Record<string, unknown>,
 			maxAttempts,
 		});
-		await this.ledgerEvent("run.created", runId, null, { workflowName: definition.name });
+		await this.ledgerEvent("run.created", runId, null, {
+			workflowName: definition.name,
+		});
 		return this.execute(definition, input, runId, options, maxAttempts);
 	}
 
@@ -141,16 +162,23 @@ export class WorkflowRunner {
 		const attempt = await this.runs.markRunning(runId);
 		if (attempt > maxAttempts) {
 			const failure = toWorkflowFailure(
-				new Error(`Workflow ${definition.name} exhausted its ${maxAttempts} run attempts`),
+				new Error(
+					`Workflow ${definition.name} exhausted its ${maxAttempts} run attempts`,
+				),
 			);
 			await this.runs.markFailed(runId, failure, true);
-			await this.ledgerEvent("run.abandoned", runId, null, { reason: "attempts_exhausted" });
+			await this.ledgerEvent("run.abandoned", runId, null, {
+				reason: "attempts_exhausted",
+			});
 			return { ok: false, runId, failure };
 		}
 		await this.ledgerEvent("run.started", runId, null, { attempt });
 
 		try {
-			const result = await definition.handler(input, this.createStepExecutor(runId));
+			const result = await definition.handler(
+				input,
+				this.createStepExecutor(runId),
+			);
 			await this.runs.markSucceeded(runId);
 			await this.ledgerEvent("run.succeeded", runId, null, {});
 			return { ok: true, runId, result };
@@ -181,7 +209,11 @@ export class WorkflowRunner {
 	}
 
 	private createStepExecutor(runId: string): StepExecutor {
-		return async <T>(stepName: string, options: StepRunOptions, fn: () => Promise<T>): Promise<T> => {
+		return async <T>(
+			stepName: string,
+			options: StepRunOptions,
+			fn: () => Promise<T>,
+		): Promise<T> => {
 			const stepRunId = randomUUID();
 			const maxAttempts = options.maxRetries + 1;
 			await this.steps.create({
@@ -197,7 +229,9 @@ export class WorkflowRunner {
 				try {
 					const value = await fn();
 					await this.steps.markSucceeded(stepRunId, attempt);
-					await this.ledgerEvent("step.succeeded", runId, stepName, { attempt });
+					await this.ledgerEvent("step.succeeded", runId, stepName, {
+						attempt,
+					});
 					await this.ledgerStepResult({
 						runId,
 						stepName,
@@ -209,13 +243,23 @@ export class WorkflowRunner {
 				} catch (error) {
 					const lastAttempt = attempt === maxAttempts;
 					const retrying = !lastAttempt && !isNonRetryable(error);
-					await this.steps.markFailed(stepRunId, attempt, toWorkflowFailure(error), retrying);
-					const failure = toWorkflowFailure(error);
-					await this.ledgerEvent(retrying ? "step.retrying" : "step.failed", runId, stepName, {
+					await this.steps.markFailed(
+						stepRunId,
 						attempt,
-						failureName: failure.name,
-						failureMessage: failure.message,
-					});
+						toWorkflowFailure(error),
+						retrying,
+					);
+					const failure = toWorkflowFailure(error);
+					await this.ledgerEvent(
+						retrying ? "step.retrying" : "step.failed",
+						runId,
+						stepName,
+						{
+							attempt,
+							failureName: failure.name,
+							failureMessage: failure.message,
+						},
+					);
 					if (!retrying) {
 						await this.ledgerStepResult({
 							runId,

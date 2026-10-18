@@ -40,9 +40,9 @@ export async function getMcpCalls(orgId: string, filters?: {
   return db.mcpCall.findMany({
     where: {
       orgId,
-      ...(filters?.toolId ? { toolId: filters.toolId } : {}),
-      ...(filters?.actorId ? { actorId: filters.actorId } : {}),
-      ...(filters?.status ? { status: filters.status } : {}),
+      ...(filters?.toolId ? { toolId: filters.toolId } : undefined),
+      ...(filters?.actorId ? { actorId: filters.actorId } : undefined),
+      ...(filters?.status ? { status: filters.status } : undefined),
     },
     orderBy: { createdAt: "desc" },
   });

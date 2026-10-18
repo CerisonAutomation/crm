@@ -4,8 +4,8 @@
 
 import { Module } from "@nestjs/common";
 import { DatabaseModule } from "../database/database.module";
-import { SoulService } from "./soul.service";
 import { SoulController } from "./soul.controller";
+import { SoulService } from "./soul.service";
 
 @Module({
 	imports: [DatabaseModule],

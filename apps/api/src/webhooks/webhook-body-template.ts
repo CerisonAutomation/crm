@@ -11,18 +11,26 @@
 export const WEBHOOK_BODY_TEMPLATE_MAX_CHARS = 8192;
 export const WEBHOOK_RENDERED_BODY_MAX_CHARS = 131072;
 
-const PLACEHOLDER_PATTERN = /\{\{\s*([A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)*)\s*\}\}/g;
+const PLACEHOLDER_PATTERN =
+	/\{\{\s*([A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)*)\s*\}\}/g;
 
 export type RenderedWebhookBody =
 	| { ok: true; body: Record<string, unknown> }
-	| { ok: false; reason: "unrenderable" | "invalidJson" | "notAnObject" | "tooLarge" };
+	| {
+			ok: false;
+			reason: "unrenderable" | "invalidJson" | "notAnObject" | "tooLarge";
+	  };
 
 export const WEBHOOK_TEMPLATE_SAMPLE_ENVELOPE = {
 	event: "contact.created",
 	data: {
 		userId: "00000000-0000-4000-8000-000000000001",
 		entityId: "00000000-0000-4000-8000-000000000003",
-		payload: { id: "00000000-0000-4000-8000-000000000003", firstName: "Ada", lastName: "Lovelace" },
+		payload: {
+			id: "00000000-0000-4000-8000-000000000003",
+			firstName: "Ada",
+			lastName: "Lovelace",
+		},
 	},
 	timestamp: "2026-01-01T00:00:00.000Z",
 } as const;
@@ -31,7 +39,12 @@ function resolvePath(source: unknown, path: string): unknown {
 	let current = source;
 
 	for (const segment of path.split(".")) {
-		if (current === null || typeof current !== "object" || Array.isArray(current)) return undefined;
+		if (
+			current === null ||
+			typeof current !== "object" ||
+			Array.isArray(current)
+		)
+			return undefined;
 		current = (current as Record<string, unknown>)[segment];
 	}
 
@@ -47,7 +60,10 @@ function toEscapedReplacement(value: unknown): string {
 	return JSON.stringify(raw).slice(1, -1);
 }
 
-export function renderWebhookBody(template: string, envelope: unknown): RenderedWebhookBody {
+export function renderWebhookBody(
+	template: string,
+	envelope: unknown,
+): RenderedWebhookBody {
 	let rendered: string;
 
 	try {
@@ -58,7 +74,8 @@ export function renderWebhookBody(template: string, envelope: unknown): Rendered
 		return { ok: false, reason: "unrenderable" };
 	}
 
-	if (rendered.length > WEBHOOK_RENDERED_BODY_MAX_CHARS) return { ok: false, reason: "tooLarge" };
+	if (rendered.length > WEBHOOK_RENDERED_BODY_MAX_CHARS)
+		return { ok: false, reason: "tooLarge" };
 
 	let parsed: unknown;
 

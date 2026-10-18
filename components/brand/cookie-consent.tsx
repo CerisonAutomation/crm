@@ -32,13 +32,13 @@ export const COOKIE_SETTINGS_EVENT = "cl:open-cookie-settings";
 
 /** Open the settings panel from anywhere (e.g. a footer button). */
 export function openCookieSettings(): void {
-  if (typeof window !== "undefined") window.dispatchEvent(new Event(COOKIE_SETTINGS_EVENT));
+  if (globalThis.window !== undefined) window.dispatchEvent(new Event(COOKIE_SETTINGS_EVENT));
 }
 
 type Decision = { essential: true; analytics: boolean; marketing: boolean; version: number; ts: string };
 
 function readDecision(): Decision | null {
-  if (typeof window === "undefined") return null;
+  if (globalThis.window === undefined) return null;
   try {
     const raw = window.localStorage.getItem(COOKIE_CONSENT_STORAGE_KEY);
     if (!raw) return null;

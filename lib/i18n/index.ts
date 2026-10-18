@@ -58,13 +58,13 @@ const listeners = new Set<() => void>();
     the UI in the right language (was hardcoded to "en" in layout.tsx). */
 function applyDocumentLang(locale: Locale) {
   try {
-    if (typeof document !== "undefined") document.documentElement.lang = locale;
+    if (globalThis.document !== undefined) document.documentElement.lang = locale;
   } catch {
     /* ignore */
   }
 }
 
-if (typeof window !== "undefined") {
+if (globalThis.window !== undefined) {
   try {
     const saved = window.localStorage.getItem(STORE_KEY);
     if (saved && isLocale(saved)) current = saved;

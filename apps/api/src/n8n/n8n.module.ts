@@ -4,11 +4,11 @@
 
 import { Module } from "@nestjs/common";
 import { DatabaseModule } from "../database/database.module";
-import { WorkflowsModule } from "../workflows/workflows.module";
 import { RoutinesModule } from "../routines/routines.module";
 import { WebhooksModule } from "../webhooks/webhooks.module";
-import { N8nService } from "./n8n.service";
+import { WorkflowsModule } from "../workflows/workflows.module";
 import { N8nController } from "./n8n.controller";
+import { N8nService } from "./n8n.service";
 
 @Module({
 	imports: [DatabaseModule, WorkflowsModule, RoutinesModule, WebhooksModule],

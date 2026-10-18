@@ -21,9 +21,21 @@ class InMemoryBookingDb {
 	};
 
 	booking = {
-		findFirst: async ({ where }: { where: { id: string; ownerUserId: string } }) =>
-			this.bookings.find((row) => row.id === where.id && row.ownerUserId === where.ownerUserId) ?? null,
-		update: async ({ where, data }: { where: { id: string }; data: Record<string, unknown> }) => {
+		findFirst: async ({
+			where,
+		}: {
+			where: { id: string; ownerUserId: string };
+		}) =>
+			this.bookings.find(
+				(row) => row.id === where.id && row.ownerUserId === where.ownerUserId,
+			) ?? null,
+		update: async ({
+			where,
+			data,
+		}: {
+			where: { id: string };
+			data: Record<string, unknown>;
+		}) => {
 			const row = this.bookings.find((entry) => entry.id === where.id);
 			if (!row) throw new Error("unknown booking");
 			Object.assign(row, data);
@@ -54,10 +66,16 @@ function fixture(providerAccount: "google-calendar" | "microsoft-calendar") {
 	};
 	db.bookings.push(booking);
 
-	const calls: Array<{ url: string; method?: string; headers?: Record<string, string> }> = [];
+	const calls: Array<{
+		url: string;
+		method?: string;
+		headers?: Record<string, string>;
+	}> = [];
 	const fetcher: FetchLike = async (url, init) => {
 		calls.push({ url, method: init?.method, headers: init?.headers });
-		const body = init?.body ? (JSON.parse(init.body) as Record<string, unknown>) : {};
+		const body = init?.body
+			? (JSON.parse(init.body) as Record<string, unknown>)
+			: {};
 		const isGoogle = url.includes("googleapis.com");
 		const response = isGoogle
 			? {
@@ -67,7 +85,9 @@ function fixture(providerAccount: "google-calendar" | "microsoft-calendar") {
 				}
 			: {
 					id: "ms-event-1",
-					onlineMeeting: { joinUrl: "https://teams.microsoft.com/l/meetup-join/xyz" },
+					onlineMeeting: {
+						joinUrl: "https://teams.microsoft.com/l/meetup-join/xyz",
+					},
 					...body,
 				};
 		return {
@@ -100,7 +120,9 @@ describe("calendar provider mapping + event bodies", () => {
 		};
 		const google = googleEventBody(booking);
 		expect(google.summary).toBe("Demo");
-		expect((google.start as { dateTime: string }).dateTime).toBe("2026-11-01T10:00:00.000Z");
+		expect((google.start as { dateTime: string }).dateTime).toBe(
+			"2026-11-01T10:00:00.000Z",
+		);
 		expect(google.conferenceData).toBeDefined();
 
 		const microsoft = microsoftEventBody(booking);
@@ -133,7 +155,9 @@ describe("BookingCalendarService", () => {
 		const { service, booking } = fixture("microsoft-calendar");
 		const pushed = await service.pushBooking("user-1", booking as never);
 		expect(pushed.externalEventId).toBe("ms-event-1");
-		expect(pushed.meetingUrl).toBe("https://teams.microsoft.com/l/meetup-join/xyz");
+		expect(pushed.meetingUrl).toBe(
+			"https://teams.microsoft.com/l/meetup-join/xyz",
+		);
 	});
 
 	it("cancels external events idempotently and no-ops without an external id", async () => {
@@ -142,7 +166,9 @@ describe("BookingCalendarService", () => {
 		expect(await service.cancelExternal("user-1", booking as never)).toBe(true);
 		expect(calls[0]?.method).toBe("DELETE");
 		booking.externalEventId = null;
-		expect(await service.cancelExternal("user-1", booking as never)).toBe(false);
+		expect(await service.cancelExternal("user-1", booking as never)).toBe(
+			false,
+		);
 	});
 
 	it("rejects providers without calendar sync and missing connections", async () => {

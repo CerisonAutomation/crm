@@ -6,17 +6,17 @@ import {
 	truncateText,
 } from "../src/workflows/storage-caps";
 import { WorkflowLedgerService } from "../src/workflows/workflow-ledger.service";
-import {
-	WorkflowRunner,
-	WorkflowDefinition,
-	type WorkflowLedgerPort,
-} from "../src/workflows/workflow-runner.service";
 import type {
 	WorkflowRunRecord,
 	WorkflowRunRepository,
 	WorkflowStepRunRecord,
 	WorkflowStepRunRepository,
 } from "../src/workflows/workflow-repository";
+import {
+	WorkflowDefinition,
+	type WorkflowLedgerPort,
+	WorkflowRunner,
+} from "../src/workflows/workflow-runner.service";
 
 describe("storage caps (Postiz Temporal truncation)", () => {
 	it("truncates long text with a marker", () => {
@@ -82,7 +82,9 @@ describe("WorkflowLedgerService", () => {
 			kind: "run.started",
 			payload: { blob: "z".repeat(10_000) },
 		});
-		expect(JSON.stringify(db.events[0]?.payload).length).toBeLessThanOrEqual(2000);
+		expect(JSON.stringify(db.events[0]?.payload).length).toBeLessThanOrEqual(
+			2000,
+		);
 	});
 
 	it("never throws from recordStepResult (observability must not break runs)", async () => {
@@ -94,13 +96,21 @@ describe("WorkflowLedgerService", () => {
 			},
 		};
 		const ledger = new WorkflowLedgerService(brokenDb as never);
-		await ledger.recordStepResult({ runId: "r", stepName: "s", attempt: 1, status: "failed" });
+		await ledger.recordStepResult({
+			runId: "r",
+			stepName: "s",
+			attempt: 1,
+			status: "failed",
+		});
 		expect(true).toBe(true);
 	});
 });
 
 class InMemoryRunRepository implements WorkflowRunRepository {
-	readonly rows = new Map<string, WorkflowRunRecord & { status: string; attemptCount: number }>();
+	readonly rows = new Map<
+		string,
+		WorkflowRunRecord & { status: string; attemptCount: number }
+	>();
 	async create(record: WorkflowRunRecord): Promise<void> {
 		this.rows.set(record.id, { ...record, status: "pending", attemptCount: 0 });
 	}
@@ -137,11 +147,21 @@ class InMemoryStepRepository implements WorkflowStepRunRepository {
 class CapturingLedger implements WorkflowLedgerPort {
 	readonly events: Array<{ kind: string; runId: string }> = [];
 	readonly results: Array<{ status: string; stepName: string }> = [];
-	async appendEvent(input: { runId: string; stepName?: string | null; kind: string; payload?: Record<string, unknown> }) {
+	async appendEvent(input: {
+		runId: string;
+		stepName?: string | null;
+		kind: string;
+		payload?: Record<string, unknown>;
+	}) {
 		this.events.push({ kind: input.kind, runId: input.runId });
 		return "event-id";
 	}
-	async recordStepResult(input: { runId: string; stepName: string; attempt: number; status: "succeeded" | "failed" | "skipped" }) {
+	async recordStepResult(input: {
+		runId: string;
+		stepName: string;
+		attempt: number;
+		status: "succeeded" | "failed" | "skipped";
+	}) {
 		this.results.push({ status: input.status, stepName: input.stepName });
 	}
 }
@@ -158,7 +178,11 @@ describe("runner ledger integration", () => {
 		const definition: WorkflowDefinition<{ n: number }, number> = {
 			name: "math",
 			handler: async (input, step) => {
-				const doubled = await step("double", { maxRetries: 0 }, async () => input.n * 2);
+				const doubled = await step(
+					"double",
+					{ maxRetries: 0 },
+					async () => input.n * 2,
+				);
 				await step("boom", { maxRetries: 0 }, async () => {
 					throw new Error("step exploded");
 				});
@@ -177,7 +201,10 @@ describe("runner ledger integration", () => {
 			"step.failed",
 			"run.failed",
 		]);
-		expect(ledger.results.map((entry) => entry.status)).toEqual(["succeeded", "failed"]);
+		expect(ledger.results.map((entry) => entry.status)).toEqual([
+			"succeeded",
+			"failed",
+		]);
 	});
 
 	it("swallows ledger failures without failing the run", async () => {

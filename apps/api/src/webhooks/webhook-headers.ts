@@ -46,7 +46,9 @@ export type WebhookHeaderIssue =
 	| "valueInvalid"
 	| "headersTooLarge";
 
-export function validateWebhookHeaders(headers: Record<string, string>): WebhookHeaderIssue[] {
+export function validateWebhookHeaders(
+	headers: Record<string, string>,
+): WebhookHeaderIssue[] {
 	const issues: WebhookHeaderIssue[] = [];
 	const entries = Object.entries(headers);
 
@@ -58,7 +60,11 @@ export function validateWebhookHeaders(headers: Record<string, string>): Webhook
 	for (const [name, value] of entries) {
 		total += name.length + value.length;
 
-		if (name.length === 0 || name.length > WEBHOOK_HEADER_NAME_MAX_CHARS || !HEADER_NAME_PATTERN.test(name)) {
+		if (
+			name.length === 0 ||
+			name.length > WEBHOOK_HEADER_NAME_MAX_CHARS ||
+			!HEADER_NAME_PATTERN.test(name)
+		) {
 			issues.push("nameInvalid");
 			continue;
 		}
@@ -72,7 +78,10 @@ export function validateWebhookHeaders(headers: Record<string, string>): Webhook
 		if (seen.has(lowered)) issues.push("duplicateHeader");
 		seen.add(lowered);
 
-		if (value.length > WEBHOOK_HEADER_VALUE_MAX_CHARS || !HEADER_VALUE_PATTERN.test(value)) {
+		if (
+			value.length > WEBHOOK_HEADER_VALUE_MAX_CHARS ||
+			!HEADER_VALUE_PATTERN.test(value)
+		) {
 			issues.push("valueInvalid");
 		}
 	}
@@ -90,17 +99,22 @@ export const WebhookHeadersSchema = z
 		}
 	});
 
-export function parseStoredWebhookHeaders(value: unknown): Record<string, string> {
-	if (value === null || typeof value !== "object" || Array.isArray(value)) return {};
+export function parseStoredWebhookHeaders(
+	value: unknown,
+): Record<string, string> {
+	if (value === null || typeof value !== "object" || Array.isArray(value))
+		return {};
 
-	const entries = Object.entries(value as Record<string, unknown>).filter(([name, headerValue]) =>
-		isUsableHeader(name, headerValue),
+	const entries = Object.entries(value as Record<string, unknown>).filter(
+		([name, headerValue]) => isUsableHeader(name, headerValue),
 	);
 
 	return Object.fromEntries(entries) as Record<string, string>;
 }
 
-export function formatWebhookHeaderLines(headers: Record<string, string> | null | undefined): string {
+export function formatWebhookHeaderLines(
+	headers: Record<string, string> | null | undefined,
+): string {
 	if (!headers) return "";
 
 	return Object.entries(headers)
@@ -136,7 +150,9 @@ export function allowsCredentialedHeaders(url: string): boolean {
 
 		if (parsed.protocol === "https:") return true;
 
-		return parsed.protocol === "http:" && LOOPBACK_HOSTNAMES.has(parsed.hostname);
+		return (
+			parsed.protocol === "http:" && LOOPBACK_HOSTNAMES.has(parsed.hostname)
+		);
 	} catch {
 		return false;
 	}

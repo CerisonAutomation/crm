@@ -98,6 +98,6 @@ export function useKeyboardShortcuts(options: UseKeyboardShortcutsOptions): void
 
 /** True on Apple platforms — used to render ⌘ instead of Ctrl. */
 export function isMacPlatform(): boolean {
-  if (typeof navigator === "undefined") return false;
+  if (globalThis.navigator === undefined) return false;
   return /Mac|iPhone|iPad|iPod/.test(navigator.userAgent);
 }

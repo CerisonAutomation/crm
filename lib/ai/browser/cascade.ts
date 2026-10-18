@@ -117,7 +117,7 @@ function emitTokens(
  * Zero download, zero cost, fully on-device.
  */
 export function windowAiAvailable(): boolean {
-  if (typeof window === "undefined") return false;
+  if (globalThis.window === undefined) return false;
   const w = window as unknown as { ai?: { languageModel?: unknown } };
   return (
     typeof w.ai !== "undefined" && typeof w.ai.languageModel !== "undefined"
@@ -606,7 +606,7 @@ export async function runCascade(
   throwIfAborted(signal);
 
   const online =
-    typeof navigator !== "undefined" ? navigator.onLine !== false : true;
+    globalThis.navigator !== undefined ? navigator.onLine !== false : true;
   return {
     text: "",
     tier: "unavailable",

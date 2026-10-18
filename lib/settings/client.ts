@@ -37,7 +37,7 @@ const getServerSnapshot = () => INITIAL;
 
 /** Fetch the readable settings once; never throws, never blocks render. */
 function ensureFetch() {
-  if (started || typeof window === "undefined") return;
+  if (started || globalThis.window === undefined) return;
   started = true;
   api
     .platformSettings()

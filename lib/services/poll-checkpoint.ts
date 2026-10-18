@@ -88,7 +88,7 @@ export async function recordPollFailure(id: string, pauseReason?: string) {
     data: {
       failureCount,
       lease: null,
-      ...(pauseReason ? { status: "paused", pauseReason } : {}),
+      ...(pauseReason ? { status: "paused", pauseReason } : undefined),
     },
   });
 }

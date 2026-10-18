@@ -50,8 +50,8 @@ export async function getSyncStates(orgId: string, filters?: {
   return db.syncState.findMany({
     where: {
       orgId,
-      ...(filters?.userId ? { userId: filters.userId } : {}),
-      ...(filters?.entityType ? { entityType: filters.entityType } : {}),
+      ...(filters?.userId ? { userId: filters.userId } : undefined),
+      ...(filters?.entityType ? { entityType: filters.entityType } : undefined),
     },
     orderBy: { lastSyncedAt: "desc" },
   });

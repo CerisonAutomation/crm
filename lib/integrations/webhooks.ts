@@ -669,8 +669,8 @@ export async function listDeliveries(
 ): Promise<WebhookDeliveryView[]> {
   const rows = await db.webhookDelivery.findMany({
     where: {
-      ...(endpointId ? { endpointId } : {}),
-      ...(orgId ? { endpoint: { orgId } } : {}),
+      ...(endpointId ? { endpointId } : undefined),
+      ...(orgId ? { endpoint: { orgId } } : undefined),
     },
     orderBy: { createdAt: "desc" },
     take: limit,

@@ -10,9 +10,9 @@
  * eval-runs design constraint preserved in `buildDerivedEvalSummary`).
  */
 
-import { Injectable } from "@nestjs/common";
 import { randomUUID } from "node:crypto";
 import type { Db, Prisma } from "@crm/db";
+import { Injectable } from "@nestjs/common";
 import { InjectDatabase } from "../database/database.constants";
 import { WorkflowNonRetryableError } from "../workflows/workflow-errors";
 
@@ -47,7 +47,12 @@ export type EvalRunInput = {
 	rawTranscript?: string;
 };
 
-const REFLECTION_KINDS = new Set(["self_critique", "improvement", "taste", "correction"]);
+const REFLECTION_KINDS = new Set([
+	"self_critique",
+	"improvement",
+	"taste",
+	"correction",
+]);
 const RECEIPT_STATUSES = new Set(["succeeded", "failed", "cancelled"]);
 const EVAL_KINDS = new Set(["manual", "baseline", "candidate", "publish_gate"]);
 const EVAL_TARGET_KINDS = new Set(["agent", "marketplace_template"]);
@@ -58,13 +63,17 @@ const MAX_SUMMARY_LENGTH = 2000;
  * names survive; ANY other field (transcripts, payloads) is dropped at the
  * boundary. Pure so the guarantee is testable.
  */
-export function buildDerivedEvalSummary(
-	scenarios: EvalRunInput["scenarios"],
-): { passed: number; failed: number; scenarios: Array<{ title: string; passed: boolean; failedChecks: string[] }> } {
+export function buildDerivedEvalSummary(scenarios: EvalRunInput["scenarios"]): {
+	passed: number;
+	failed: number;
+	scenarios: Array<{ title: string; passed: boolean; failedChecks: string[] }>;
+} {
 	const cleaned = scenarios.slice(0, 200).map((scenario) => ({
 		title: String(scenario.title).slice(0, 200),
 		passed: Boolean(scenario.passed),
-		failedChecks: (scenario.failedChecks ?? []).slice(0, 50).map((check) => String(check).slice(0, 100)),
+		failedChecks: (scenario.failedChecks ?? [])
+			.slice(0, 50)
+			.map((check) => String(check).slice(0, 100)),
 	}));
 	return {
 		passed: cleaned.filter((scenario) => scenario.passed).length,
@@ -81,7 +90,9 @@ export class AgentGovernanceService {
 
 	async recordReceipt(ownerUserId: string, input: ReceiptInput) {
 		if (!RECEIPT_STATUSES.has(input.status)) {
-			throw new WorkflowNonRetryableError(`Unknown receipt status ${input.status}`);
+			throw new WorkflowNonRetryableError(
+				`Unknown receipt status ${input.status}`,
+			);
 		}
 		return this.db.agentRunReceipt.create({
 			data: {
@@ -160,7 +171,11 @@ export class AgentGovernanceService {
 	async expireStaleDrafts(olderThan: Date): Promise<number> {
 		const won = await this.db.agentActionDraft.updateMany({
 			where: { status: "pending", createdAt: { lt: olderThan } },
-			data: { status: "expired", resolvedAt: new Date(), resolutionNote: "expired_sweep" },
+			data: {
+				status: "expired",
+				resolvedAt: new Date(),
+				resolutionNote: "expired_sweep",
+			},
 		});
 		return won.count;
 	}
@@ -174,13 +189,18 @@ export class AgentGovernanceService {
 
 	// ---------------------------------------------------------- reflections
 
-	async recordReflection(ownerUserId: string, input: {
-		runReceiptId?: string | null;
-		kind: string;
-		content: string;
-	}) {
+	async recordReflection(
+		ownerUserId: string,
+		input: {
+			runReceiptId?: string | null;
+			kind: string;
+			content: string;
+		},
+	) {
 		if (!REFLECTION_KINDS.has(input.kind)) {
-			throw new WorkflowNonRetryableError(`Unknown reflection kind ${input.kind}`);
+			throw new WorkflowNonRetryableError(
+				`Unknown reflection kind ${input.kind}`,
+			);
 		}
 		return this.db.agentReflectionEvent.create({
 			data: {
@@ -202,14 +222,19 @@ export class AgentGovernanceService {
 
 	// -------------------------------------------------------- taste sessions
 
-	async recordTaste(ownerUserId: string, input: {
-		topic: string;
-		preferences: Record<string, unknown>;
-		confidence?: number | null;
-	}) {
+	async recordTaste(
+		ownerUserId: string,
+		input: {
+			topic: string;
+			preferences: Record<string, unknown>;
+			confidence?: number | null;
+		},
+	) {
 		if (input.confidence !== undefined && input.confidence !== null) {
 			if (input.confidence < 0 || input.confidence > 1) {
-				throw new WorkflowNonRetryableError("confidence must be between 0 and 1");
+				throw new WorkflowNonRetryableError(
+					"confidence must be between 0 and 1",
+				);
 			}
 		}
 		return this.db.agentTasteSession.create({
@@ -237,10 +262,13 @@ export class AgentGovernanceService {
 			throw new WorkflowNonRetryableError(`Unknown eval kind ${input.kind}`);
 		}
 		if (!EVAL_TARGET_KINDS.has(input.targetKind)) {
-			throw new WorkflowNonRetryableError(`Unknown eval target kind ${input.targetKind}`);
+			throw new WorkflowNonRetryableError(
+				`Unknown eval target kind ${input.targetKind}`,
+			);
 		}
 		const summary = buildDerivedEvalSummary(input.scenarios);
-		const passed = summary.failed === 0 ? true : summary.passed === 0 ? false : null;
+		const passed =
+			summary.failed === 0 ? true : summary.passed === 0 ? false : null;
 		return this.db.evalRun.create({
 			data: {
 				id: randomUUID(),
@@ -254,7 +282,11 @@ export class AgentGovernanceService {
 		});
 	}
 
-	async evalRunsForTarget(ownerUserId: string, targetKind: string, targetId: string) {
+	async evalRunsForTarget(
+		ownerUserId: string,
+		targetKind: string,
+		targetId: string,
+	) {
 		return this.db.evalRun.findMany({
 			where: { ownerUserId, targetKind, targetId },
 			orderBy: { createdAt: "desc" },

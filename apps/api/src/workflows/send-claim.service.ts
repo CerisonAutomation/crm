@@ -13,11 +13,12 @@
  *    claim and resolution and must be reconciled manually, never blindly re-run.
  */
 
-import { Injectable, Logger } from "@nestjs/common";
 import { randomUUID } from "node:crypto";
 import type { Db, SendClaimModel } from "@crm/db";
+import { Injectable, Logger } from "@nestjs/common";
 
 type SendClaim = SendClaimModel;
+
 import { InjectDatabase } from "../database/database.constants";
 
 export type ClaimKey = {
@@ -96,7 +97,10 @@ export class SendClaimService {
 		}
 	}
 
-	async markSent(claimId: string, providerReference?: string | null): Promise<void> {
+	async markSent(
+		claimId: string,
+		providerReference?: string | null,
+	): Promise<void> {
 		await this.db.sendClaim.updateMany({
 			where: { id: claimId },
 			data: {
@@ -125,10 +129,16 @@ export class SendClaimService {
 	 * the claim is won; failures leave a `failed` claim behind (asymmetric
 	 * policy) and are rethrown so the workflow can apply its retry taxonomy.
 	 */
-	async runWithClaim<T>(key: ClaimKey, body: () => Promise<T>, referenceOf?: (value: T) => string | null): Promise<RunWithClaimResult<T>> {
+	async runWithClaim<T>(
+		key: ClaimKey,
+		body: () => Promise<T>,
+		referenceOf?: (value: T) => string | null,
+	): Promise<RunWithClaimResult<T>> {
 		const acquisition = await this.claim(key);
 		if (acquisition.outcome === "already-claimed") {
-			this.logger.warn(`Send skipped: ${key.channel}/${key.kind}/${key.idempotencyKey} already claimed`);
+			this.logger.warn(
+				`Send skipped: ${key.channel}/${key.kind}/${key.idempotencyKey} already claimed`,
+			);
 			return { outcome: "skipped", claim: acquisition.claim };
 		}
 
@@ -159,8 +169,16 @@ export class SendClaimService {
 
 function isUniqueViolation(error: unknown): boolean {
 	if (typeof error !== "object" || error === null) return false;
-	const candidate = error as { code?: unknown; meta?: unknown; message?: unknown };
+	const candidate = error as {
+		code?: unknown;
+		meta?: unknown;
+		message?: unknown;
+	};
 	if (candidate.code === "P2002") return true;
-	const message = typeof candidate.message === "string" ? candidate.message : "";
-	return message.includes("23505") || message.toLowerCase().includes("unique constraint");
+	const message =
+		typeof candidate.message === "string" ? candidate.message : "";
+	return (
+		message.includes("23505") ||
+		message.toLowerCase().includes("unique constraint")
+	);
 }

@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
         programme: {
           ...row,
           family: programmeFamily(key),
-          ...(cap ? publicProgrammeCard(cap) : {}),
+          ...(cap ? publicProgrammeCard(cap) : undefined),
           // The card contract's `kind` describes the OPERATIONAL route; the
           // capability alias behind it may be a different kind (see
           // kindForSeedKey), so it is always taken from the seeded key.

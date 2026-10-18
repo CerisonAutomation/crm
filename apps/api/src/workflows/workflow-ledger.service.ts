@@ -7,9 +7,9 @@
  * The log is the debuggable record waits reference (`resumedByRunEventId`).
  */
 
-import { Injectable, Logger } from "@nestjs/common";
 import { randomUUID } from "node:crypto";
 import type { Db, Prisma } from "@crm/db";
+import { Injectable, Logger } from "@nestjs/common";
 import { InjectDatabase } from "../database/database.constants";
 import { capJson, truncateText } from "./storage-caps";
 
@@ -96,8 +96,8 @@ export class WorkflowLedgerService {
 					attempt: input.attempt,
 					status: input.status,
 					...(input.input === undefined
-					? {}
-					: { input: capJson(input.input) as Prisma.InputJsonValue }),
+						? {}
+						: { input: capJson(input.input) as Prisma.InputJsonValue }),
 					...(input.output === undefined
 						? {}
 						: { output: capJson(input.output) as Prisma.InputJsonValue }),

@@ -12,7 +12,9 @@ describe("cron expressions", () => {
 	it("parses stars, lists, ranges and steps", () => {
 		const cron = parseCron("*/15 9-17 * * 1-5");
 		expect([...cron.minute].sort((a, b) => a - b)).toEqual([0, 15, 30, 45]);
-		expect([...cron.hour].sort((a, b) => a - b)).toEqual([9, 10, 11, 12, 13, 14, 15, 16, 17]);
+		expect([...cron.hour].sort((a, b) => a - b)).toEqual([
+			9, 10, 11, 12, 13, 14, 15, 16, 17,
+		]);
 		expect(cron.domUnrestricted).toBe(true);
 		expect(cron.dowUnrestricted).toBe(false);
 		expect(cron.dayOfWeek.has(0)).toBe(false);
@@ -56,7 +58,11 @@ describe("cron expressions", () => {
 		const justBefore = new Date("2026-10-13T09:59:59.000Z");
 		const next = nextCronRun("0 12 * * *", justBefore, "Europe/Berlin");
 		expect(next?.toISOString()).toBe("2026-10-13T10:00:00.000Z");
-		const later = nextCronRun("0 12 * * *", new Date("2026-10-13T10:00:01.000Z"), "Europe/Berlin");
+		const later = nextCronRun(
+			"0 12 * * *",
+			new Date("2026-10-13T10:00:01.000Z"),
+			"Europe/Berlin",
+		);
 		expect(later?.toISOString()).toBe("2026-10-14T10:00:00.000Z");
 	});
 
@@ -75,7 +81,11 @@ describe("cron expressions", () => {
 describe("routine validation", () => {
 	it("requires name, prompt and a cron expression for cron routines", () => {
 		expect(
-			RoutinesService.validateInput({ name: "", prompt: "", triggerKind: "manual" }),
+			RoutinesService.validateInput({
+				name: "",
+				prompt: "",
+				triggerKind: "manual",
+			}),
 		).toContain("name is required");
 
 		expect(
@@ -146,11 +156,17 @@ describe("event trigger matching", () => {
 		};
 
 		expect(
-			matcher.matchesEventTrigger(routine, { event: "deal.updated", at: new Date() }),
+			matcher.matchesEventTrigger(routine, {
+				event: "deal.updated",
+				at: new Date(),
+			}),
 		).toBe(true);
 
 		expect(
-			matcher.matchesEventTrigger(routine, { event: "deal.deleted", at: new Date() }),
+			matcher.matchesEventTrigger(routine, {
+				event: "deal.deleted",
+				at: new Date(),
+			}),
 		).toBe(false);
 
 		expect(

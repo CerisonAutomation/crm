@@ -7,9 +7,9 @@
  * reads.
  */
 
-import { Injectable } from "@nestjs/common";
 import { randomUUID } from "node:crypto";
 import type { Db, Prisma } from "@crm/db";
+import { Injectable } from "@nestjs/common";
 import { InjectDatabase } from "../database/database.constants";
 import { WorkflowNonRetryableError } from "../workflows/workflow-errors";
 
@@ -41,20 +41,34 @@ export function normalizeTags(tags: string[] | undefined): string[] {
 export class BrainService {
 	constructor(@InjectDatabase() private readonly db: Db) {}
 
-	async createBrain(ownerUserId: string, name: string, description?: string | null) {
-		if (name.trim().length === 0) throw new WorkflowNonRetryableError("brain name is required");
+	async createBrain(
+		ownerUserId: string,
+		name: string,
+		description?: string | null,
+	) {
+		if (name.trim().length === 0)
+			throw new WorkflowNonRetryableError("brain name is required");
 		return this.db.brain.create({
-			data: { id: randomUUID(), ownerUserId, name, description: description ?? null },
+			data: {
+				id: randomUUID(),
+				ownerUserId,
+				name,
+				description: description ?? null,
+			},
 		});
 	}
 
 	async brainsFor(ownerUserId: string) {
-		return this.db.brain.findMany({ where: { ownerUserId }, orderBy: { createdAt: "desc" } });
+		return this.db.brain.findMany({
+			where: { ownerUserId },
+			orderBy: { createdAt: "desc" },
+		});
 	}
 
 	async addNote(ownerUserId: string, brainId: string, input: NoteInput) {
 		await this.assertBrainOwned(ownerUserId, brainId);
-		if (input.title.trim().length === 0) throw new WorkflowNonRetryableError("note title is required");
+		if (input.title.trim().length === 0)
+			throw new WorkflowNonRetryableError("note title is required");
 		return this.db.brainNote.create({
 			data: {
 				id: randomUUID(),
@@ -77,12 +91,16 @@ export class BrainService {
 
 	async listNotes(ownerUserId: string, brainId: string) {
 		await this.assertBrainOwned(ownerUserId, brainId);
-		return this.db.brainNote.findMany({ where: { brainId }, orderBy: { createdAt: "desc" } });
+		return this.db.brainNote.findMany({
+			where: { brainId },
+			orderBy: { createdAt: "desc" },
+		});
 	}
 
 	async addOutcome(ownerUserId: string, brainId: string, input: OutcomeInput) {
 		await this.assertBrainOwned(ownerUserId, brainId);
-		if (input.label.trim().length === 0) throw new WorkflowNonRetryableError("outcome label is required");
+		if (input.label.trim().length === 0)
+			throw new WorkflowNonRetryableError("outcome label is required");
 		return this.db.brainOutcome.create({
 			data: {
 				id: randomUUID(),
@@ -103,8 +121,14 @@ export class BrainService {
 		});
 	}
 
-	private async assertBrainOwned(ownerUserId: string, brainId: string): Promise<void> {
-		const brain = await this.db.brain.findFirst({ where: { id: brainId, ownerUserId } });
-		if (!brain) throw new WorkflowNonRetryableError(`No brain ${brainId} for this owner`);
+	private async assertBrainOwned(
+		ownerUserId: string,
+		brainId: string,
+	): Promise<void> {
+		const brain = await this.db.brain.findFirst({
+			where: { id: brainId, ownerUserId },
+		});
+		if (!brain)
+			throw new WorkflowNonRetryableError(`No brain ${brainId} for this owner`);
 	}
 }

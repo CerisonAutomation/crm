@@ -64,7 +64,7 @@ type BuiltInCtor = {
 };
 
 function builtInCtor(): BuiltInCtor | null {
-  if (typeof window === "undefined") return null;
+  if (globalThis.window === undefined) return null;
   const w = window as unknown as { Translator?: BuiltInCtor };
   return typeof w.Translator?.create === "function" ? w.Translator : null;
 }

@@ -41,7 +41,7 @@ export function PwaClient() {
   const [iosOpen, setIosOpen] = useState(false);
 
   useEffect(() => {
-    if (typeof window === "undefined" || !("serviceWorker" in navigator))
+    if (globalThis.window === undefined || !("serviceWorker" in navigator))
       return;
 
     // Development must never be driven by a service worker. Turbopack rebuilds

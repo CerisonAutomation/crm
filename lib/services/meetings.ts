@@ -262,9 +262,9 @@ export async function listMeetings(
   const rows = await db.meeting.findMany({
     where: {
       orgId: ctx.orgId,
-      ...(opts.active ? { status: "OPEN" } : {}),
-      ...(opts.teamId ? { teamId: opts.teamId } : {}),
-      ...(opts.caseId ? { caseId: opts.caseId } : {}),
+      ...(opts.active ? { status: "OPEN" } : undefined),
+      ...(opts.teamId ? { teamId: opts.teamId } : undefined),
+      ...(opts.caseId ? { caseId: opts.caseId } : undefined),
       ...scope,
     },
     include: meetingInclude(),

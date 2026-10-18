@@ -176,7 +176,7 @@ export async function getPendingTranslationJobs(orgId: string) {
 
 export async function getAiTools(orgId: string, category?: string) {
   return db.aiTool.findMany({
-    where: { orgId, active: true, ...(category ? { category } : {}) },
+    where: { orgId, active: true, ...(category ? { category } : undefined) },
   });
 }
 

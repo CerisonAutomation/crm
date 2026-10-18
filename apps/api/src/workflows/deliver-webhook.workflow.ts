@@ -7,16 +7,16 @@
  * workflow quietly (the delivery row already records the outcome).
  */
 
+import { reportFailure } from "./capture-failure";
 import {
 	isExpectedError,
 	RETRYABLE_4XX,
+	toWorkflowFailure,
 	WebhookExternalFailure,
 	WebhookNonRetryableFailure,
 	type WorkflowTenant,
 } from "./workflow-errors";
 import type { WorkflowRunner } from "./workflow-runner.service";
-import { reportFailure } from "./capture-failure";
-import { toWorkflowFailure } from "./workflow-errors";
 
 export const WEBHOOK_PREFLIGHT_FAILURE_STATUS = 422;
 
@@ -40,17 +40,23 @@ export type DeliverWebhookPort = {
 const WORKFLOW_NAME = "deliver-webhook";
 const DELIVER_STEP_MAX_RETRIES = 5;
 
-export function classifyDeliveryFailure(outcome: DeliveryOutcome): Error | null {
+export function classifyDeliveryFailure(
+	outcome: DeliveryOutcome,
+): Error | null {
 	if (outcome.status === "success") return null;
 
 	const code = outcome.statusCode;
-	const nonRetryable = code !== null && code >= 400 && code < 500 && !RETRYABLE_4XX.has(code);
+	const nonRetryable =
+		code !== null && code >= 400 && code < 500 && !RETRYABLE_4XX.has(code);
 
-	if (nonRetryable) return new WebhookNonRetryableFailure(code, outcome.responseMessage);
+	if (nonRetryable)
+		return new WebhookNonRetryableFailure(code, outcome.responseMessage);
 	return new WebhookExternalFailure(code, outcome.responseMessage);
 }
 
-export type DeliverWebhookWorkflowPayload = DeliverWebhookPayload & { tenant?: WorkflowTenant };
+export type DeliverWebhookWorkflowPayload = DeliverWebhookPayload & {
+	tenant?: WorkflowTenant;
+};
 
 export function buildDeliverWebhookWorkflow(port: DeliverWebhookPort) {
 	return {
@@ -62,15 +68,22 @@ export function buildDeliverWebhookWorkflow(port: DeliverWebhookPort) {
 			const { tenant, ...delivery } = payload;
 
 			try {
-				return await step("deliverStep", { maxRetries: DELIVER_STEP_MAX_RETRIES }, async () => {
-					const outcome = await port.deliver(delivery);
-					const failure = classifyDeliveryFailure(outcome);
-					if (failure) throw failure;
-					return outcome;
-				});
+				return await step(
+					"deliverStep",
+					{ maxRetries: DELIVER_STEP_MAX_RETRIES },
+					async () => {
+						const outcome = await port.deliver(delivery);
+						const failure = classifyDeliveryFailure(outcome);
+						if (failure) throw failure;
+						return outcome;
+					},
+				);
 			} catch (err) {
 				if (isExpectedError(err)) {
-					if (err instanceof WebhookNonRetryableFailure || err instanceof WebhookExternalFailure) {
+					if (
+						err instanceof WebhookNonRetryableFailure ||
+						err instanceof WebhookExternalFailure
+					) {
 						return {
 							status: "failed",
 							statusCode: err.statusCode,
@@ -85,7 +98,9 @@ export function buildDeliverWebhookWorkflow(port: DeliverWebhookPort) {
 	};
 }
 
-export type DeliverWebhookWorkflow = ReturnType<typeof buildDeliverWebhookWorkflow>;
+export type DeliverWebhookWorkflow = ReturnType<
+	typeof buildDeliverWebhookWorkflow
+>;
 
 export async function runDeliverWebhookWorkflow(
 	runner: WorkflowRunner,

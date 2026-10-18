@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
         where: isStaff ? { case: { orgId: ctx.orgId } } : { clientId: ctx.userId },
         include: { case: { select: { id: true, reference: true } } },
         orderBy: [{ startsAt: "asc" }, { id: "asc" }],
-        ...(cursor ? { cursor: { id: decodeCursor(cursor) }, skip: 1 } : {}),
+        ...(cursor ? { cursor: { id: decodeCursor(cursor) }, skip: 1 } : undefined),
         take: limit + 1,
       });
       const page = nextPage(rows, limit, (b) => b.id);

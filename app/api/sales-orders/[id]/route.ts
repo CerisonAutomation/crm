@@ -33,15 +33,15 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const salesOrder = await db.salesOrder.update({
       where: { id },
       data: {
-        ...(body.subject !== undefined ? { subject: String(body.subject).trim().slice(0, 200) } : {}),
-        ...(body.accountId !== undefined ? { accountId: body.accountId ? String(body.accountId) : null } : {}),
-        ...(body.contactId !== undefined ? { contactId: body.contactId ? String(body.contactId) : null } : {}),
-        ...(body.status !== undefined ? { status: body.status ? String(body.status).trim().slice(0, 40) : null } : {}),
-        ...(body.dueDate !== undefined ? { dueDate: body.dueDate ? new Date(String(body.dueDate)) : null } : {}),
-        ...(body.carrier !== undefined ? { carrier: body.carrier ? String(body.carrier).trim().slice(0, 80) : null } : {}),
-        ...(body.total !== undefined ? { total: body.total ? Number(body.total) : null } : {}),
-        ...(body.currency !== undefined ? { currency: body.currency ? String(body.currency).trim().slice(0, 10) : null } : {}),
-        ...(body.description !== undefined ? { description: body.description ? String(body.description).trim().slice(0, 4000) : null } : {}),
+        ...(body.subject !== undefined ? { subject: String(body.subject).trim().slice(0, 200) } : undefined),
+        ...(body.accountId !== undefined ? { accountId: body.accountId ? String(body.accountId) : null } : undefined),
+        ...(body.contactId !== undefined ? { contactId: body.contactId ? String(body.contactId) : null } : undefined),
+        ...(body.status !== undefined ? { status: body.status ? String(body.status).trim().slice(0, 40) : null } : undefined),
+        ...(body.dueDate !== undefined ? { dueDate: body.dueDate ? new Date(String(body.dueDate)) : null } : undefined),
+        ...(body.carrier !== undefined ? { carrier: body.carrier ? String(body.carrier).trim().slice(0, 80) : null } : undefined),
+        ...(body.total !== undefined ? { total: body.total ? Number(body.total) : null } : undefined),
+        ...(body.currency !== undefined ? { currency: body.currency ? String(body.currency).trim().slice(0, 10) : null } : undefined),
+        ...(body.description !== undefined ? { description: body.description ? String(body.description).trim().slice(0, 4000) : null } : undefined),
       },
     });
 

@@ -35,7 +35,7 @@ const TOKEN_KEY = "cl_session_token";
 
 function readStoredToken(): string | null {
   try {
-    return typeof window === "undefined"
+    return globalThis.window === undefined
       ? null
       : window.sessionStorage.getItem(TOKEN_KEY);
   } catch {
@@ -45,7 +45,7 @@ function readStoredToken(): string | null {
 
 function storeToken(token: string | null) {
   try {
-    if (typeof window === "undefined") return;
+    if (globalThis.window === undefined) return;
     if (token) window.sessionStorage.setItem(TOKEN_KEY, token);
     else window.sessionStorage.removeItem(TOKEN_KEY);
   } catch {
@@ -1006,7 +1006,7 @@ export const api = {
     }>("/api/messages", {
       caseId,
       body,
-      ...(documentId ? { documentId } : {}),
+      ...(documentId ? { documentId } : undefined),
     }),
 
   // peer-to-peer calling (WebRTC signaling relays through REST)
@@ -2003,6 +2003,7 @@ export const api = {
       invoices: Array<{
         id: string;
         number: string;
+        orgId: string;
         clientId: string;
         caseId: string | null;
         title: string;
@@ -2010,15 +2011,25 @@ export const api = {
         amountCents: number;
         status: string;
         notes: string | null;
+        lineItems: string | null;
         issuedAt: string | null;
         dueAt: string | null;
         paidAt: string | null;
+        primaryBy: string | null;
+        approvedBy: string | null;
+        approvedAt: string | null;
         createdAt: string;
+        updatedAt: string;
         payments: Array<{
           amountCents: number;
           method: string;
           receivedAt: string;
           reference: string | null;
+        }>;
+        creditNotes: Array<{
+          amountCents: number;
+          reason: string | null;
+          createdAt: string;
         }>;
       }>;
       summary: { count: number; paidCents: number; openCents: number };
@@ -2032,6 +2043,94 @@ export const api = {
     dueDays?: number;
     notes?: string;
   }) => post<{ invoice: { id: string; number: string } }>("/api/finance", p),
+  /** Invoice close-out actions — the server only accepts these exact codes. */
+  financeAction: (
+    id: string,
+    action: "APPROVE" | "PAY" | "VOID" | "CREDIT_NOTE",
+    body?: { method?: string; reference?: string; amountCents?: number; reason?: string },
+  ) =>
+    patch<{ invoice: { id: string; status: string } }>(
+      `/api/finance/${encodeURIComponent(id)}`,
+      { action, ...body },
+    ),
+
+  // ── bookings (consultation slots) ──
+  bookings: () =>
+    get<{
+      bookings: Array<{
+        id: string;
+        slotId: string;
+        startsAt: string;
+        durationMin: number;
+        status: string;
+        cancelReason: string | null;
+        clientName: string;
+        clientEmail: string;
+        clientId: string | null;
+        caseId: string | null;
+        channel: string;
+        note: string | null;
+        createdAt: string;
+        case: { id: string; reference: string } | null;
+      }>;
+      nextCursor?: string;
+    }>("/api/bookings?mine=1"),
+  bookingAction: (
+    id: string,
+    action: "CONFIRM" | "CANCEL" | "NO_SHOW",
+    reason?: string,
+  ) =>
+    post<{ ok: boolean; status: string }>(
+      `/api/bookings/${encodeURIComponent(id)}`,
+      { action, reason },
+    ),
+
+  // ── consultations ──
+  consultations: () =>
+    get<{
+      consultations: Array<{
+        id: string;
+        orgId: string;
+        leadName: string;
+        leadEmail: string;
+        leadPhone: string | null;
+        programmeKey: string | null;
+        scheduledAt: string;
+        durationMin: number;
+        status: string;
+        icsSentAt: string | null;
+        notes: string | null;
+        createdAt: string;
+        updatedAt: string;
+      }>;
+    }>("/api/consultations"),
+
+  // ── reminders ──
+  reminders: () =>
+    get<{
+      reminders: Array<{
+        id: string;
+        caseId: string | null;
+        clientId: string | null;
+        kind: string;
+        title: string;
+        detail: string | null;
+        dueAt: string;
+        status: string;
+        audience: string;
+        dedupeKey: string;
+        firedAt: string | null;
+        escalatedAt: string | null;
+        createdAt: string;
+        case: { id: string; reference: string; clientId: string } | null;
+      }>;
+      lastSweep: string | null;
+    }>("/api/reminders"),
+  reminderSweep: () =>
+    post<{ swept: { fired: number; escalated: number } }>("/api/reminders", {
+      action: "sweep",
+    }),
+
   renewals: () =>
     get<{
       renewals: Array<{
@@ -2044,9 +2143,20 @@ export const api = {
         dueAt: string;
         remindAt: string | null;
         status: string;
+        orgId: string;
+        createdAt: string;
+        updatedAt: string;
         case: { reference: string; clientId: string } | null;
       }>;
     }>("/api/renewals"),
+  renewalUpdate: (
+    id: string,
+    p: { status?: string; dueAt?: string; notes?: string },
+  ) =>
+    patch<{ renewal: { id: string; status: string } }>(
+      `/api/renewals/${encodeURIComponent(id)}`,
+      p,
+    ),
   createRenewal: (p: {
     caseId?: string;
     kind?: string;
@@ -3897,7 +4007,7 @@ export const api = {
   ) =>
     post<{ ok: true }>(`/api/conversations/${id}/actions`, {
       action,
-      ...(ownerId ? { ownerId } : {}),
+      ...(ownerId ? { ownerId } : undefined),
     }),
 };
 

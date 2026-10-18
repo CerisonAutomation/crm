@@ -1,10 +1,13 @@
 import { describe, expect, it } from "bun:test";
+import type { WorkflowFailure } from "../src/workflows/workflow-errors";
 import {
-	retryDelayMs,
-	WorkflowRunner,
-	type StepRunOptions,
-	type WorkflowDefinition,
-} from "../src/workflows/workflow-runner.service";
+	isNonRetryable,
+	isRetryableStatus,
+	toWorkflowFailure,
+	WebhookExternalFailure,
+	WebhookNonRetryableFailure,
+	WorkflowNonRetryableError,
+} from "../src/workflows/workflow-errors";
 import type {
 	WorkflowRunRecord,
 	WorkflowRunRepository,
@@ -12,17 +15,21 @@ import type {
 	WorkflowStepRunRepository,
 } from "../src/workflows/workflow-repository";
 import {
-	WebhookExternalFailure,
-	WebhookNonRetryableFailure,
-	WorkflowNonRetryableError,
-	isNonRetryable,
-	isRetryableStatus,
-	toWorkflowFailure,
-} from "../src/workflows/workflow-errors";
-import type { WorkflowFailure } from "../src/workflows/workflow-errors";
+	retryDelayMs,
+	type StepRunOptions,
+	type WorkflowDefinition,
+	WorkflowRunner,
+} from "../src/workflows/workflow-runner.service";
 
 class InMemoryRunRepository implements WorkflowRunRepository {
-	readonly rows = new Map<string, WorkflowRunRecord & { status: string; attemptCount: number; failure?: WorkflowFailure }>();
+	readonly rows = new Map<
+		string,
+		WorkflowRunRecord & {
+			status: string;
+			attemptCount: number;
+			failure?: WorkflowFailure;
+		}
+	>();
 
 	async create(record: WorkflowRunRecord): Promise<void> {
 		this.rows.set(record.id, { ...record, status: "pending", attemptCount: 0 });
@@ -42,7 +49,11 @@ class InMemoryRunRepository implements WorkflowRunRepository {
 		row.status = "succeeded";
 	}
 
-	async markFailed(id: string, failure: WorkflowFailure, expected: boolean): Promise<void> {
+	async markFailed(
+		id: string,
+		failure: WorkflowFailure,
+		expected: boolean,
+	): Promise<void> {
 		const row = this.rows.get(id);
 		if (!row) throw new Error(`unknown run ${id}`);
 		row.status = "failed";
@@ -63,7 +74,10 @@ class InMemoryRunRepository implements WorkflowRunRepository {
 }
 
 class InMemoryStepRepository implements WorkflowStepRunRepository {
-	readonly rows = new Map<string, WorkflowStepRunRecord & { status: string; attemptCount: number }>();
+	readonly rows = new Map<
+		string,
+		WorkflowStepRunRecord & { status: string; attemptCount: number }
+	>();
 
 	async create(record: WorkflowStepRunRecord): Promise<void> {
 		this.rows.set(record.id, { ...record, status: "pending", attemptCount: 0 });
@@ -76,7 +90,12 @@ class InMemoryStepRepository implements WorkflowStepRunRepository {
 		row.attemptCount = attempt;
 	}
 
-	async markFailed(id: string, attempt: number, _failure: WorkflowFailure, willRetry: boolean): Promise<void> {
+	async markFailed(
+		id: string,
+		attempt: number,
+		_failure: WorkflowFailure,
+		willRetry: boolean,
+	): Promise<void> {
 		const row = this.rows.get(id);
 		if (!row) throw new Error(`unknown step ${id}`);
 		row.status = willRetry ? "pending" : "failed";
@@ -120,7 +139,9 @@ describe("the workflow retry schedule", () => {
 
 	it("treats non-retryable failures as non-retryable everywhere", () => {
 		expect(isNonRetryable(new WorkflowNonRetryableError("nope"))).toBe(true);
-		expect(isNonRetryable(new WebhookNonRetryableFailure(404, "missing"))).toBe(true);
+		expect(isNonRetryable(new WebhookNonRetryableFailure(404, "missing"))).toBe(
+			true,
+		);
 		expect(isNonRetryable(new Error("boom"))).toBe(false);
 		expect(isNonRetryable(new WebhookExternalFailure(503, "down"))).toBe(false);
 	});
@@ -227,7 +248,13 @@ describe("a durable run", () => {
 			},
 		};
 		void stuck;
-		await runs.create({ id: "run-1", workflowName: "stuck", tenantUserId: null, input: {}, maxAttempts: 3 });
+		await runs.create({
+			id: "run-1",
+			workflowName: "stuck",
+			tenantUserId: null,
+			input: {},
+			maxAttempts: 3,
+		});
 		await runs.markRunning("run-1");
 		const abandoned = await runner.abandonStaleRuns(new Date());
 		expect(abandoned).toBe(1);
@@ -238,7 +265,9 @@ describe("a durable run", () => {
 		const failure = toWorkflowFailure(new Error("kaboom"));
 		expect(failure.expected).toBe(false);
 		expect(failure.message).toBe("kaboom");
-		const expectedFailure = toWorkflowFailure(new WebhookNonRetryableFailure(404, "gone"));
+		const expectedFailure = toWorkflowFailure(
+			new WebhookNonRetryableFailure(404, "gone"),
+		);
 		expect(expectedFailure.expected).toBe(true);
 	});
 

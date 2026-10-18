@@ -1,10 +1,10 @@
 import { describe, expect, it } from "bun:test";
 import {
+	type AvailabilityRules,
+	BookingRuleError,
 	bookingsConflict,
 	computeDaySlots,
-	BookingRuleError,
 	validateBookingRules,
-	type AvailabilityRules,
 } from "../src/booking/booking-availability";
 
 const TALLINN = "Europe/Tallinn";
@@ -19,16 +19,24 @@ const nineToFive: AvailabilityRules = {
 
 describe("validateBookingRules", () => {
 	it("rejects out-of-range durations", () => {
-		expect(() => validateBookingRules(2, 0, nineToFive)).toThrow(BookingRuleError);
-		expect(() => validateBookingRules(30, -1, nineToFive)).toThrow(BookingRuleError);
+		expect(() => validateBookingRules(2, 0, nineToFive)).toThrow(
+			BookingRuleError,
+		);
+		expect(() => validateBookingRules(30, -1, nineToFive)).toThrow(
+			BookingRuleError,
+		);
 	});
 
 	it("rejects malformed windows", () => {
 		expect(() =>
-			validateBookingRules(30, 0, { windows: [{ weekday: 9, startMinute: 0, endMinute: 60 }] }),
+			validateBookingRules(30, 0, {
+				windows: [{ weekday: 9, startMinute: 0, endMinute: 60 }],
+			}),
 		).toThrow(BookingRuleError);
 		expect(() =>
-			validateBookingRules(30, 0, { windows: [{ weekday: 1, startMinute: 600, endMinute: 600 }] }),
+			validateBookingRules(30, 0, {
+				windows: [{ weekday: 1, startMinute: 600, endMinute: 600 }],
+			}),
 		).toThrow(BookingRuleError);
 	});
 });
@@ -75,7 +83,12 @@ describe("computeDaySlots", () => {
 			bufferMinutes: 0,
 			timezone: TALLINN,
 			rules: nineToFive,
-			existing: [{ startsAt: at("2026-10-19T08:00:00Z"), endsAt: at("2026-10-19T09:00:00Z") }],
+			existing: [
+				{
+					startsAt: at("2026-10-19T08:00:00Z"),
+					endsAt: at("2026-10-19T09:00:00Z"),
+				},
+			],
 			notBefore: at("2026-10-01T00:00:00Z"),
 		});
 		expect(slots.length).toBe(7);
@@ -121,7 +134,9 @@ describe("computeDaySlots", () => {
 			notBefore: at("2026-10-19T10:30:00Z"),
 		});
 		for (const slot of slots) {
-			expect(slot.startsAt.getTime()).toBeGreaterThanOrEqual(at("2026-10-19T10:30:00Z").getTime());
+			expect(slot.startsAt.getTime()).toBeGreaterThanOrEqual(
+				at("2026-10-19T10:30:00Z").getTime(),
+			);
 		}
 		expect(slots.length).toBeGreaterThan(0);
 	});
@@ -151,14 +166,26 @@ describe("bookingsConflict", () => {
 	it("detects overlaps and honours touching edges", () => {
 		expect(
 			bookingsConflict(
-				{ startsAt: at("2026-10-19T09:00:00Z"), endsAt: at("2026-10-19T10:00:00Z") },
-				{ startsAt: at("2026-10-19T09:30:00Z"), endsAt: at("2026-10-19T10:30:00Z") },
+				{
+					startsAt: at("2026-10-19T09:00:00Z"),
+					endsAt: at("2026-10-19T10:00:00Z"),
+				},
+				{
+					startsAt: at("2026-10-19T09:30:00Z"),
+					endsAt: at("2026-10-19T10:30:00Z"),
+				},
 			),
 		).toBe(true);
 		expect(
 			bookingsConflict(
-				{ startsAt: at("2026-10-19T09:00:00Z"), endsAt: at("2026-10-19T10:00:00Z") },
-				{ startsAt: at("2026-10-19T10:00:00Z"), endsAt: at("2026-10-19T11:00:00Z") },
+				{
+					startsAt: at("2026-10-19T09:00:00Z"),
+					endsAt: at("2026-10-19T10:00:00Z"),
+				},
+				{
+					startsAt: at("2026-10-19T10:00:00Z"),
+					endsAt: at("2026-10-19T11:00:00Z"),
+				},
 			),
 		).toBe(false);
 	});

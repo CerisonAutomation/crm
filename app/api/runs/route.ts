@@ -12,9 +12,9 @@ export async function GET(req: NextRequest) {
     const runs = await db.workflowRun.findMany({
       where: {
         workflow: { orgId: ctx.orgId },
-        ...(url.searchParams.get("workflowId") ? { workflowId: url.searchParams.get("workflowId")! } : {}),
-        ...(url.searchParams.get("caseId") ? { caseId: url.searchParams.get("caseId")! } : {}),
-        ...(url.searchParams.get("status") ? { status: url.searchParams.get("status")! } : {}),
+        ...(url.searchParams.get("workflowId") ? { workflowId: url.searchParams.get("workflowId")! } : undefined),
+        ...(url.searchParams.get("caseId") ? { caseId: url.searchParams.get("caseId")! } : undefined),
+        ...(url.searchParams.get("status") ? { status: url.searchParams.get("status")! } : undefined),
       },
       include: { workflow: { select: { name: true } }, case: { select: { reference: true } } },
       orderBy: { createdAt: "desc" },

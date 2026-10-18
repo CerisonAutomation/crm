@@ -36,8 +36,8 @@ export async function getFormSchemas(orgId: string, filters?: {
   return db.formSchema.findMany({
     where: {
       orgId,
-      ...(filters?.pageId ? { pageId: filters.pageId } : {}),
-      ...(filters?.status ? { status: filters.status } : {}),
+      ...(filters?.pageId ? { pageId: filters.pageId } : undefined),
+      ...(filters?.status ? { status: filters.status } : undefined),
     },
     orderBy: [{ pageId: "asc" }, { version: "desc" }],
   });

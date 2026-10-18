@@ -24,12 +24,16 @@
 		"db:test": "bun run --filter=@crm/db db:test"
 	},
 	"devDependencies": {
+		"@better-auth/core": "1.6.25",
 		"@biomejs/biome": "^2.4.10",
 		"@oxlint/plugins": "1.78.0",
 		"knip": "6.32.2",
 		"oxlint": "1.78.0",
 		"turbo": "^2.10.8",
 		"typescript": "5.9.2"
+	},
+	"overrides": {
+		"@better-auth/core": "1.6.25"
 	},
 	"engines": {
 		"node": ">=22"

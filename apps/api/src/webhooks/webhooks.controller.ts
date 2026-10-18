@@ -2,6 +2,7 @@
  * Webhook subscription CRUD + dispatch testing, session-authenticated.
  */
 
+import type { auth } from "@crm/auth";
 import {
 	BadRequestException,
 	Body,
@@ -15,11 +16,10 @@ import {
 	Query,
 } from "@nestjs/common";
 import { ApiOperation, ApiTags } from "@nestjs/swagger";
-import type { auth } from "@crm/auth";
 import { Session, type UserSession } from "@thallesp/nestjs-better-auth";
-import { WebhooksService, type WebhookInput } from "./webhooks.service";
-import { WEBHOOK_EVENTS } from "./webhook-events";
 import { WorkflowNonRetryableError } from "../workflows/workflow-errors";
+import { WEBHOOK_EVENTS } from "./webhook-events";
+import { type WebhookInput, WebhooksService } from "./webhooks.service";
 
 type CrmSession = UserSession<typeof auth>;
 
@@ -43,11 +43,17 @@ export class WebhooksController {
 
 	@Get("deliveries")
 	@ApiOperation({ summary: "Recent delivery journal entries" })
-	async deliveries(@Session() session: CrmSession, @Query("limit") limit?: string) {
+	async deliveries(
+		@Session() session: CrmSession,
+		@Query("limit") limit?: string,
+	) {
 		const ownerUserId = session.user.id;
 		const parsedLimit = limit ? Number.parseInt(limit, 10) : 50;
-		const safeLimit = Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : 50;
-		return { deliveries: await this.webhooks.listDeliveries(ownerUserId, safeLimit) };
+		const safeLimit =
+			Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : 50;
+		return {
+			deliveries: await this.webhooks.listDeliveries(ownerUserId, safeLimit),
+		};
 	}
 
 	@Post()
@@ -63,9 +69,15 @@ export class WebhooksController {
 
 	@Put(":id")
 	@ApiOperation({ summary: "Update a webhook subscription" })
-	async update(@Session() session: CrmSession, @Param("id") id: string, @Body() body: WebhookInput) {
+	async update(
+		@Session() session: CrmSession,
+		@Param("id") id: string,
+		@Body() body: WebhookInput,
+	) {
 		const ownerUserId = session.user.id;
-		const existing = (await this.webhooks.list(ownerUserId)).find((webhook) => webhook.id === id);
+		const existing = (await this.webhooks.list(ownerUserId)).find(
+			(webhook) => webhook.id === id,
+		);
 		if (!existing) throw new NotFoundException(`No webhook with id ${id}`);
 		try {
 			return { webhook: await this.webhooks.update(id, body) };
@@ -78,7 +90,9 @@ export class WebhooksController {
 	@ApiOperation({ summary: "Delete a webhook subscription" })
 	async remove(@Session() session: CrmSession, @Param("id") id: string) {
 		const ownerUserId = session.user.id;
-		const existing = (await this.webhooks.list(ownerUserId)).find((webhook) => webhook.id === id);
+		const existing = (await this.webhooks.list(ownerUserId)).find(
+			(webhook) => webhook.id === id,
+		);
 		if (!existing) throw new NotFoundException(`No webhook with id ${id}`);
 		await this.webhooks.remove(id);
 		return { deleted: true };

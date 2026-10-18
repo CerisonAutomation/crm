@@ -7,14 +7,18 @@ import {
 	type FileOptions,
 	parseDiffFromFile,
 } from "@pierre/diffs";
-import { Editor, type EditorOptions } from "@pierre/diffs/edit";
+import {
+	Editor,
+	type EditorOptions,
+	type EditorType,
+} from "@pierre/diffs/edit";
 import { EditProvider, File, FileDiff, Virtualizer } from "@pierre/diffs/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useTRPC } from "@/lib/trpc/client";
 
-const FILE_OPTIONS: FileOptions<undefined> = {
+const FILE_OPTIONS: FileOptions<undefined, undefined> = {
 	theme: { dark: "pierre-dark-soft", light: "pierre-light-soft" },
 	stickyHeader: true,
 };
@@ -30,8 +34,11 @@ const VIRTUALIZER_STYLE = {
 	overflow: "auto",
 } as const;
 
-function createEditor(options: EditorOptions<undefined>) {
-	return new Editor(options);
+function createEditor<EType extends EditorType>(
+	editorType: EType,
+	options: EditorOptions<EType, undefined, undefined>,
+) {
+	return new Editor(editorType, options);
 }
 
 export function AgentCode({
@@ -50,7 +57,7 @@ export function AgentCode({
 	const [changed, setChanged] = useState<string[]>([]);
 	const [saving, setSaving] = useState(false);
 	const draft = useRef(new Map<string, string>());
-	const editorRef = useRef<Editor<undefined> | null>(null);
+	const editorRef = useRef<Editor<"file", undefined, undefined> | null>(null);
 
 	const code = useQuery(trpc.agents.files.queryOptions({ id: agentId }));
 	const files = code.data?.files ?? [];
@@ -98,16 +105,16 @@ export function AgentCode({
 		toast.success("Saved.");
 	}, [agentId, queryClient, save, trpc]);
 
-	const editorOptions = useMemo<EditorOptions<undefined>>(
+	const editorOptions = useMemo<EditorOptions<"file", undefined, undefined>>(
 		() => ({
 			persistState: true,
 			onAttach(editor) {
 				editorRef.current = editor;
 			},
 			onChange(next) {
-				draft.current.set(next.name, next.contents);
+				draft.current.set(next.file.name, next.file.contents);
 				setChanged((paths) =>
-					paths.includes(next.name) ? paths : [...paths, next.name],
+					paths.includes(next.file.name) ? paths : [...paths, next.file.name],
 				);
 			},
 		}),

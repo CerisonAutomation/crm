@@ -76,10 +76,7 @@ export async function retireExhausted(
 	const now = new Date();
 
 	return db.$queryRaw<TaskSubject[]>`
-		UPDATE "agentTask" AS t
-		SET "finishedAt" = ${now},
-			"outcome" = ${RETIRED_OUTCOME}
-		WHERE t.id IN (
+		WITH due AS MATERIALIZED (
 			SELECT c.id
 			FROM "agentTask" AS c
 			WHERE c."finishedAt" IS NULL
@@ -89,6 +86,10 @@ export async function retireExhausted(
 			LIMIT ${limit}
 			FOR UPDATE SKIP LOCKED
 		)
+		UPDATE "agentTask" AS t
+		SET "finishedAt" = ${now},
+			"outcome" = ${RETIRED_OUTCOME}
+		WHERE t.id IN (SELECT id FROM due)
 		RETURNING t.id, t."contactId", t."companyId", t."dealId", t.kind;
 	`;
 }

@@ -48,10 +48,10 @@ export async function getWorkItems(orgId: string, filters?: {
   return db.workItem.findMany({
     where: {
       orgId,
-      ...(filters?.caseId ? { caseId: filters.caseId } : {}),
-      ...(filters?.status ? { status: filters.status } : {}),
-      ...(filters?.assigneeId ? { assigneeId: filters.assigneeId } : {}),
-      ...(filters?.priority ? { priority: filters.priority } : {}),
+      ...(filters?.caseId ? { caseId: filters.caseId } : undefined),
+      ...(filters?.status ? { status: filters.status } : undefined),
+      ...(filters?.assigneeId ? { assigneeId: filters.assigneeId } : undefined),
+      ...(filters?.priority ? { priority: filters.priority } : undefined),
     },
     orderBy: { createdAt: "desc" },
   });
@@ -62,7 +62,7 @@ export async function updateWorkItem(id: string, input: UpdateWorkItemInput) {
     where: { id },
     data: {
       ...input,
-      ...(input.status === "DONE" ? { completedAt: new Date() } : {}),
+      ...(input.status === "DONE" ? { completedAt: new Date() } : undefined),
     },
   });
 }

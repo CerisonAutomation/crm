@@ -26,7 +26,7 @@ export type GuidedDraft = {
 };
 
 export function saveGuidedDraft(draft: GuidedDraft): void {
-  if (typeof window === "undefined") return;
+  if (globalThis.window === undefined) return;
   try {
     window.sessionStorage.setItem(KEY, JSON.stringify(draft));
   } catch {
@@ -36,7 +36,7 @@ export function saveGuidedDraft(draft: GuidedDraft): void {
 }
 
 export function readGuidedDraft(): GuidedDraft | null {
-  if (typeof window === "undefined") return null;
+  if (globalThis.window === undefined) return null;
   try {
     const raw = window.sessionStorage.getItem(KEY);
     if (!raw) return null;
@@ -55,7 +55,7 @@ export function readGuidedDraft(): GuidedDraft | null {
 }
 
 export function clearGuidedDraft(): void {
-  if (typeof window === "undefined") return;
+  if (globalThis.window === undefined) return;
   try {
     window.sessionStorage.removeItem(KEY);
   } catch {

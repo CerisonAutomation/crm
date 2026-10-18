@@ -138,7 +138,7 @@ export async function addAgentCapability(params: {
 
 export async function getAgents(orgId: string, type?: string) {
   return db.agent.findMany({
-    where: { orgId, active: true, ...(type ? { type } : {}) },
+    where: { orgId, active: true, ...(type ? { type } : undefined) },
     include: { capabilities: true },
   });
 }

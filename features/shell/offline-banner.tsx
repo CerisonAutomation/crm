@@ -63,7 +63,7 @@ export function OfflineBanner() {
       }
     };
 
-    apply(typeof navigator === "undefined" ? true : navigator.onLine);
+    apply(globalThis.navigator === undefined ? true : navigator.onLine);
 
     const onOnline = () => apply(true);
     const onOffline = () => apply(false);

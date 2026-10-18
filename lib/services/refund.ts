@@ -40,8 +40,8 @@ export async function getRefunds(orgId: string, filters?: {
   return db.refund.findMany({
     where: {
       orgId,
-      ...(filters?.caseId ? { caseId: filters.caseId } : {}),
-      ...(filters?.status ? { status: filters.status } : {}),
+      ...(filters?.caseId ? { caseId: filters.caseId } : undefined),
+      ...(filters?.status ? { status: filters.status } : undefined),
     },
     orderBy: { createdAt: "desc" },
   });
@@ -52,7 +52,7 @@ export async function updateRefund(id: string, input: UpdateRefundInput) {
     where: { id },
     data: {
       ...input,
-      ...(input.status === "PROCESSED" ? { processedAt: new Date() } : {}),
+      ...(input.status === "PROCESSED" ? { processedAt: new Date() } : undefined),
     },
   });
 }

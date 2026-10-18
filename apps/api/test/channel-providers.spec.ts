@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { metaHubChallenge } from "../src/channels/channel-contracts";
 import {
 	buildDefaultProviders,
 	InstagramChannelProvider,
@@ -6,7 +7,6 @@ import {
 	MessengerChannelProvider,
 	WhatsAppChannelProvider,
 } from "../src/channels/channel-providers";
-import { metaHubChallenge } from "../src/channels/channel-contracts";
 import {
 	hasEnv,
 	IntegrationRegistryService,
@@ -26,7 +26,9 @@ const webhook = {
 					message: {
 						mid: "wamid.abc",
 						text: "Hello",
-						attachments: [{ type: "image", payload: { url: "https://cdn/img.png" } }],
+						attachments: [
+							{ type: "image", payload: { url: "https://cdn/img.png" } },
+						],
 					},
 				},
 			],
@@ -41,17 +43,30 @@ describe("Meta channel providers normalize inbound webhooks", () => {
 		expect(messages[0]?.externalId).toBe("wamid.abc");
 		expect(messages[0]?.senderHandle).toBe("user-9");
 		expect(messages[0]?.body).toBe("Hello");
-		expect(messages[0]?.media).toEqual([{ type: "image", url: "https://cdn/img.png" }]);
+		expect(messages[0]?.media).toEqual([
+			{ type: "image", url: "https://cdn/img.png" },
+		]);
 		expect(messages[0]?.occurredAt.getTime()).toBe(1760000000000);
 	});
 
 	it("messenger and instagram share the messaging envelope", () => {
-		expect(new MessengerChannelProvider().normalizeInbound(webhook)[0]?.provider).toBe("messenger");
-		expect(new InstagramChannelProvider().normalizeInbound(webhook)[0]?.provider).toBe("instagram");
+		expect(
+			new MessengerChannelProvider().normalizeInbound(webhook)[0]?.provider,
+		).toBe("messenger");
+		expect(
+			new InstagramChannelProvider().normalizeInbound(webhook)[0]?.provider,
+		).toBe("instagram");
 	});
 
 	it("drops events without a message id", () => {
-		const empty = { entry: [{ id: "p", messaging: [{ sender: { id: "u" }, recipient: { id: "p" } }] }] };
+		const empty = {
+			entry: [
+				{
+					id: "p",
+					messaging: [{ sender: { id: "u" }, recipient: { id: "p" } }],
+				},
+			],
+		};
 		expect(new WhatsAppChannelProvider().normalizeInbound(empty)).toEqual([]);
 	});
 });
@@ -93,34 +108,67 @@ describe("LinkedIn channel provider", () => {
 describe("meta hub handshake", () => {
 	it("echoes the challenge only for a matching verify token", () => {
 		expect(
-			metaHubChallenge({ mode: "subscribe", token: "secret", verifyToken: "secret", challenge: "123" }),
+			metaHubChallenge({
+				mode: "subscribe",
+				token: "secret",
+				verifyToken: "secret",
+				challenge: "123",
+			}),
 		).toBe("123");
 		expect(
-			metaHubChallenge({ mode: "subscribe", token: "wrong", verifyToken: "secret", challenge: "123" }),
+			metaHubChallenge({
+				mode: "subscribe",
+				token: "wrong",
+				verifyToken: "secret",
+				challenge: "123",
+			}),
 		).toBeNull();
-		expect(metaHubChallenge({ mode: "delete", token: "secret", verifyToken: "secret", challenge: "123" })).toBeNull();
+		expect(
+			metaHubChallenge({
+				mode: "delete",
+				token: "secret",
+				verifyToken: "secret",
+				challenge: "123",
+			}),
+		).toBeNull();
 	});
 });
 
 describe("tiered integration registry", () => {
 	it("filters configured adapters by env gates (tier2 semantics)", async () => {
 		const registry = new IntegrationRegistryService();
-		registry.register(new ProviderEnvAdapter("whatsapp", "tier1", ["META_APP_ID", "META_APP_SECRET"]));
-		registry.register(new ProviderEnvAdapter("linkedin", "tier2", ["LINKEDIN_CLIENT_ID"]));
+		registry.register(
+			new ProviderEnvAdapter("whatsapp", "tier1", [
+				"META_APP_ID",
+				"META_APP_SECRET",
+			]),
+		);
+		registry.register(
+			new ProviderEnvAdapter("linkedin", "tier2", ["LINKEDIN_CLIENT_ID"]),
+		);
 
-		const partial = { META_APP_ID: "1", META_APP_SECRET: "" } as unknown as NodeJS.ProcessEnv;
-		expect(registry.getConfigured(partial).map((descriptor) => descriptor.id)).toEqual([]);
+		const partial = {
+			META_APP_ID: "1",
+			META_APP_SECRET: "",
+		} as unknown as NodeJS.ProcessEnv;
+		expect(
+			registry.getConfigured(partial).map((descriptor) => descriptor.id),
+		).toEqual([]);
 
 		const full = {
 			META_APP_ID: "1",
 			META_APP_SECRET: "s",
 			LINKEDIN_CLIENT_ID: "li",
 		} as unknown as NodeJS.ProcessEnv;
-		expect(registry.getConfigured(full).map((descriptor) => descriptor.id).sort()).toEqual([
-			"linkedin",
-			"whatsapp",
-		]);
-		expect(registry.getByTier("tier1").map((descriptor) => descriptor.id)).toEqual(["whatsapp"]);
+		expect(
+			registry
+				.getConfigured(full)
+				.map((descriptor) => descriptor.id)
+				.sort(),
+		).toEqual(["linkedin", "whatsapp"]);
+		expect(
+			registry.getByTier("tier1").map((descriptor) => descriptor.id),
+		).toEqual(["whatsapp"]);
 
 		const health = await registry.healthCheckAll(full);
 		expect(health.checked.sort()).toEqual(["linkedin", "whatsapp"]);
@@ -130,12 +178,18 @@ describe("tiered integration registry", () => {
 	it("rejects duplicate registrations", () => {
 		const registry = new IntegrationRegistryService();
 		registry.register(new ProviderEnvAdapter("whatsapp", "tier1", []));
-		expect(() => registry.register(new ProviderEnvAdapter("whatsapp", "tier1", []))).toThrow();
+		expect(() =>
+			registry.register(new ProviderEnvAdapter("whatsapp", "tier1", [])),
+		).toThrow();
 	});
 
 	it("hasEnv requires every key to be non-empty", () => {
-		expect(hasEnv(["A", "B"], { A: "1", B: "2" } as unknown as NodeJS.ProcessEnv)).toBe(true);
-		expect(hasEnv(["A", "B"], { A: "1", B: "" } as unknown as NodeJS.ProcessEnv)).toBe(false);
+		expect(
+			hasEnv(["A", "B"], { A: "1", B: "2" } as unknown as NodeJS.ProcessEnv),
+		).toBe(true);
+		expect(
+			hasEnv(["A", "B"], { A: "1", B: "" } as unknown as NodeJS.ProcessEnv),
+		).toBe(false);
 		expect(hasEnv(["A"], {} as unknown as NodeJS.ProcessEnv)).toBe(false);
 	});
 });

@@ -38,7 +38,7 @@ export function detectCapabilities(): Capabilities {
   if (cached) return cached;
 
   const nav =
-    typeof navigator !== "undefined"
+    globalThis.navigator !== undefined
       ? (navigator as Navigator & { gpu?: unknown; deviceMemory?: number })
       : null;
   const webgpu = Boolean(nav?.gpu);
@@ -59,7 +59,7 @@ export function detectCapabilities(): Capabilities {
   const dtype: Dtype =
     tier === "high" ? "fp16" : tier === "medium" ? "q8" : "q4";
   const online =
-    typeof navigator !== "undefined" ? navigator.onLine !== false : true;
+    globalThis.navigator !== undefined ? navigator.onLine !== false : true;
   const memBudgetMb = tier === "high" ? 1024 : tier === "medium" ? 512 : 256;
 
   cached = {
@@ -93,7 +93,7 @@ export function canAfford(
 /** Re-probe network state (tiers are cached; online is not). */
 export function refreshOnlineState(): boolean {
   const online =
-    typeof navigator !== "undefined" ? navigator.onLine !== false : true;
+    globalThis.navigator !== undefined ? navigator.onLine !== false : true;
   const c = detectCapabilities();
   c.online = online;
   return online;

@@ -1,13 +1,17 @@
 import { describe, expect, it } from "bun:test";
 import { EventDispatcherService } from "../src/events/event-dispatcher.service";
-import { WorkflowGatesService } from "../src/workflows/workflow-gates.service";
 import type { ResolvedPredicate } from "../src/workflows/workflow-gates.service";
+import { WorkflowGatesService } from "../src/workflows/workflow-gates.service";
 
 type Row = Record<string, unknown> & { id: string };
 
 function matchesWhere(row: Row, where: Record<string, unknown>): boolean {
 	for (const [key, condition] of Object.entries(where)) {
-		if (condition !== null && typeof condition === "object" && "in" in (condition as object)) {
+		if (
+			condition !== null &&
+			typeof condition === "object" &&
+			"in" in (condition as object)
+		) {
 			if (!(condition as { in: unknown[] }).in.includes(row[key])) return false;
 		} else if (
 			condition !== null &&
@@ -15,9 +19,14 @@ function matchesWhere(row: Row, where: Record<string, unknown>): boolean {
 			("lte" in (condition as object) || "not" in (condition as object))
 		) {
 			const spec = condition as { lte?: unknown; not?: unknown };
-			if (spec.not !== undefined && spec.not !== null && row[key] === spec.not) return false;
+			if (spec.not !== undefined && spec.not !== null && row[key] === spec.not)
+				return false;
 			if (spec.lte !== undefined && spec.lte !== null) {
-				if (row[key] === null || (row[key] as Date).getTime() > (spec.lte as Date).getTime()) return false;
+				if (
+					row[key] === null ||
+					(row[key] as Date).getTime() > (spec.lte as Date).getTime()
+				)
+					return false;
 			}
 		} else if (row[key] !== condition) {
 			return false;
@@ -40,7 +49,13 @@ class InMemoryGatesDb {
 			this.waits.filter((row) => matchesWhere(row, where)),
 		findUnique: async ({ where }: { where: { id: string } }) =>
 			this.waits.find((row) => row.id === where.id) ?? null,
-		updateMany: async ({ where, data }: { where: Record<string, unknown>; data: Record<string, unknown> }) => {
+		updateMany: async ({
+			where,
+			data,
+		}: {
+			where: Record<string, unknown>;
+			data: Record<string, unknown>;
+		}) => {
 			const hits = this.waits.filter((row) => matchesWhere(row, where));
 			for (const row of hits) Object.assign(row, data);
 			return { count: hits.length };
@@ -57,7 +72,13 @@ class InMemoryGatesDb {
 			this.approvals.filter((row) => matchesWhere(row, where)),
 		findUnique: async ({ where }: { where: { id: string } }) =>
 			this.approvals.find((row) => row.id === where.id) ?? null,
-		updateMany: async ({ where, data }: { where: Record<string, unknown>; data: Record<string, unknown> }) => {
+		updateMany: async ({
+			where,
+			data,
+		}: {
+			where: Record<string, unknown>;
+			data: Record<string, unknown>;
+		}) => {
 			const hits = this.approvals.filter((row) => matchesWhere(row, where));
 			for (const row of hits) Object.assign(row, data);
 			return { count: hits.length };
@@ -237,7 +258,10 @@ describe("step-level gates (awaitEvent / awaitApproval)", () => {
 
 describe("predicate freeze at registration", () => {
 	it("keeps literal values frozen even if the payload later differs", async () => {
-		const predicate: ResolvedPredicate = { contactId: "c-frozen", stage: "won" };
+		const predicate: ResolvedPredicate = {
+			contactId: "c-frozen",
+			stage: "won",
+		};
 		const { gates } = gatesPair();
 		await gates.registerWait({
 			runId: "run-7",
@@ -246,7 +270,17 @@ describe("predicate freeze at registration", () => {
 			matchPredicate: predicate,
 			timeoutAt: null,
 		});
-		expect(await gates.resumeByEvent("deal.updated", { contactId: "c-frozen", stage: "lost" })).toBeNull();
-		expect(await gates.resumeByEvent("deal.updated", { contactId: "c-frozen", stage: "won" })).not.toBeNull();
+		expect(
+			await gates.resumeByEvent("deal.updated", {
+				contactId: "c-frozen",
+				stage: "lost",
+			}),
+		).toBeNull();
+		expect(
+			await gates.resumeByEvent("deal.updated", {
+				contactId: "c-frozen",
+				stage: "won",
+			}),
+		).not.toBeNull();
 	});
 });
