@@ -1,0 +1,1845 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@font-face {
+  font-family: "Urbanist";
+  src: url("./fonts/urbanist-var.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Poppins";
+  src: url("./fonts/poppins-300.woff2") format("woff2");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Poppins";
+  src: url("./fonts/poppins-400.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Poppins";
+  src: url("./fonts/poppins-500.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Poppins";
+  src: url("./fonts/poppins-600.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Poppins";
+  src: url("./fonts/poppins-700.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Mincho";
+  src: url("./fonts/mincho-400.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Mincho";
+  src: url("./fonts/mincho-500.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Mincho";
+  src: url("./fonts/mincho-600.woff2") format("woff2");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --font-urbanist: "Urbanist", ui-sans-serif, system-ui, sans-serif;
+  --font-poppins: "Poppins", ui-sans-serif, system-ui, sans-serif;
+  --font-mincho: "Mincho", Georgia, serif;
+}
+
+/* ─────────── Citizen Lane brand tokens (Visual Language v2) ─────────── */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans:
+    var(--font-urbanist), var(--font-poppins), ui-sans-serif, system-ui,
+    sans-serif;
+  --font-editorial:
+    "Hiragino Mincho ProN", "Hiragino Mincho", "Yu Mincho", var(--font-mincho),
+    Georgia, serif;
+  --font-serif:
+    "Hiragino Mincho ProN", "Hiragino Mincho", "Yu Mincho", var(--font-mincho),
+    Georgia, serif;
+
+  /* Primary palette — from the Visual Language PDF's cobalt/gold system.
+     The gold is a CHAMPAGNE burnish, not the PDF's literal #C79D52 and not the
+     bronze it was deepened to before. Both extremes failed on screen: the
+     printed literal reads mustard, and deepening it to #B08C52 dropped the
+     saturation to 36%, which reads as dull bronze — the metal stopped looking
+     like metal. This value holds the documented hue (40°) and lifts saturation
+     and value into the champagne band, which is what reads as polished gold
+     beside cobalt. It also lifts gold-on-cobble from 4.8:1 to 6.8:1. The stone
+     stays one step deepened from the PDF, which is a different problem: printed
+     tan reads peach on a screen. If the PDF is ever the single source again,
+     this is the one place to reconcile. */
+  /* The palette is brand-owned: each fill token reads a `--cl-*` variable with
+     the canon hex as its fallback (src/lib/theme/index.ts is the writer, and
+     CANON_BRAND.tokens in src/lib/brand/defaults.ts is the source). An unset
+     variable is therefore not a bug — it is canon, so the first paint and the
+     hydrated paint are identical. The AA-locked ink tokens below deliberately
+     do NOT read a `--cl-*` variable: a white-label palette may restyle the
+     fills, never the text contrast. */
+  --color-cobble: var(--cl-cobble, #12283a);
+  --color-gold: var(--cl-gold, #caaa68);
+  /* Text-safe gold. The brand gold (#B08C52) only reaches ~2.9:1 on the warm
+     paper, so it fails WCAG AA the moment it is used for TEXT. This token is
+     the same metallic family darkened for legibility on light grounds (~7:1),
+     and stays the exact brand gold on dark grounds (see the scope rules below). */
+  --color-gold-ink: var(--gold-text);
+  --color-sky: var(--cl-sky, #81a2c3);
+  --color-limestone: var(--cl-limestone, #d6c0a2);
+  --color-iron: var(--cl-iron, #4a4a49);
+  /* Ground-aware body ink. `text-cobble-ink` / `text-iron-ink` were fixed brand hexes,
+     so on the dark theme's grounds they went near-invisible (cobble #12283A on
+     #0E1B27 ≈ 1.01:1). These tokens resolve cobble/iron in light and the
+     foreground/muted-foreground pair in dark, re-pinned per ground below — the
+     same inheriting-custom-property trick as --gold-text. */
+  --color-cobble-ink: var(--ink);
+  --color-iron-ink: var(--ink-muted);
+  /* Warning / error inks are ground-aware for the same reason: the fixed amber
+     #9a6a0a and red #b04a48 hexes are legible on light ground but vanish on the
+     dark theme's panels, so they resolve per ground instead of being literals. */
+  --color-amber-ink: var(--amber-text);
+  --color-danger-ink: var(--danger-text);
+  /* Secondary-palette status colors, same treatment: the raw brand tones are
+     tuned for fills on dark grounds and fail AA as text on light ones. */
+  --color-olive-ink: var(--olive-text);
+  --color-coral-ink: var(--coral-text);
+  --color-teal-ink: var(--teal-text);
+  --color-sky-ink: var(--sky-text);
+  --color-limestone-ink: var(--limestone-text);
+
+  /* Secondary palette (statuses / accents, used sparingly). The ten slots are
+     the documented PDF p.11 palette, in order, and each follows the brand's
+     `secondary[]` array — see brandTokenDeclarations(). */
+  --color-teal: var(--cl-secondary-1, #1ca5b1);
+  --color-amber-brand: var(--cl-secondary-2, #ffb115);
+  --color-plum: var(--cl-secondary-3, #73576c);
+  --color-clay: var(--cl-secondary-4, #96624d);
+  --color-olive: var(--cl-secondary-5, #577445);
+  --color-rust: var(--cl-secondary-6, #dc6b3a);
+  --color-deepsea: var(--cl-secondary-7, #006182);
+  --color-coral: var(--cl-secondary-8, #f28482);
+  --color-silver: var(--cl-secondary-9, #d1d3d4);
+  --color-lilac: var(--cl-secondary-10, #d3c0da);
+
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root {
+  --radius: 0.375rem;
+  /* Warm paper background — calm, discreet, editorial */
+  --background: var(--cl-paper, #faf8f4); /* brand paper, canon by default */
+  --foreground: #12283a;
+  --card: #ffffff;
+  --card-foreground: #12283a;
+  --popover: #ffffff;
+  --popover-foreground: #12283a;
+  /* Cobble is the primary brand colour */
+  --primary: #12283a;
+  --primary-foreground: #faf8f4;
+  /* Limestone is the brand's secondary fill — brand-owned, canon fallback. */
+  --secondary: var(--cl-limestone, #d6c0a2);
+  --secondary-foreground: #12283a;
+  --muted: #f1ede6;
+  --muted-foreground: #4a4a49;
+  /* Interactive hover tint — official SKY BLUE at ~10% over paper */
+  --accent: #edf2f6;
+  --accent-foreground: #12283a;
+  --destructive: #b5471f;
+  --border: #e4ded3;
+  /* The field outline is the ONLY boundary for a transparent-fill input, so it
+     must itself clear AA 1.4.11 (3:1). The old #D9D2C5 read 1.42:1 on the paper
+     ground; this darker warm grey is ~3.47:1 on #FAF8F4 while staying in the
+     limestone family. The high-contrast block below deliberately re-uses it. */
+  --input: #8a8578;
+  --ring: #b08c52;
+  /* Gold used for TEXT on light grounds — an antique bronze that clears AA
+     (>=5:1) on paper, white and the muted tint. Re-pinned to the brand gold on
+     dark grounds by the rules after the theme blocks. */
+  --gold-text: #6b5019;
+  /* Body ink resolves to cobble/iron on light grounds; re-pinned on dark ones. */
+  --ink: #12283a;
+  --ink-muted: #4a4a49;
+  --amber-text: #8a5d08;
+  --danger-text: #b04a48;
+  --olive-text: #24331a;
+  --coral-text: #a8443f;
+  --teal-text: #0a6b76;
+  --sky-text: #3a5a7a;
+  --limestone-text: #6b5535;
+  /* Charts use the official SECONDARY palette (Visual Language v2 p.11) */
+  --chart-1: #b08c52;
+  --chart-2: #81a2c3;
+  --chart-3: #1ca5b1;
+  --chart-4: #73576c;
+  --chart-5: #dc6b3a;
+  --sidebar: var(--cl-chrome-bg, #12283a);
+  --sidebar-foreground: var(--cl-chrome-text, #e8e2d6);
+  --sidebar-primary: var(--cl-gold, #b08c52);
+  --sidebar-primary-foreground: var(--cl-cobble, #12283a);
+  --sidebar-accent: var(--cl-chrome-active, #1b3a54);
+  --sidebar-accent-foreground: var(--cl-chrome-text, #faf8f4);
+  --sidebar-border: var(--cl-chrome-border, #24405a);
+  --sidebar-ring: var(--cl-gold, #b08c52);
+
+  /* ── Motion vocabulary ──────────────────────────────────────────────
+     Two refined ease curves carry the whole site. `--ease-out-expo` is the
+     editorial settle (entrances, reveals); `--ease-out-quint` is the crisper
+     sibling for interactive hovers. Defined as tokens so every surface moves
+     on the same rhythm instead of ad-hoc cubic-beziers. */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-out-soft: cubic-bezier(0.33, 1, 0.68, 1);
+  --ease-in-out-brand: cubic-bezier(0.65, 0, 0.35, 1);
+
+  /* Durations — fast for hover, base for transitions, slow/reveal for entry. */
+  --dur-fast: 160ms;
+  --dur-base: 280ms;
+  --dur-slow: 480ms;
+  --dur-reveal: 760ms;
+
+  /* ── Fluid editorial type ramp ──────────────────────────────────────
+     Every display size interpolates with clamp() so the scale holds its
+     proportions from a 360px phone to a wide desktop — print-like, not
+     stepped. Body/lead use a gentler slope than the display sizes. */
+  --text-display: clamp(2.5rem, 1.55rem + 4.2vw, 4.75rem);
+  --text-h1: clamp(2.05rem, 1.4rem + 2.7vw, 3.35rem);
+  --text-h2: clamp(1.6rem, 1.18rem + 1.75vw, 2.35rem);
+  --text-h3: clamp(1.28rem, 1.06rem + 0.85vw, 1.6rem);
+  --text-lead: clamp(1.02rem, 0.97rem + 0.4vw, 1.2rem);
+  --text-eyebrow: 0.6875rem; /* 11px */
+  --text-micro: 0.625rem; /* 10px */
+
+  /* Eyebrow tracking — one value everywhere so eyebrows read as a system. */
+  --tracking-eyebrow: 0.28em;
+  --tracking-eyebrow-tight: 0.18em;
+
+  /* Reading measure — keeps long-form prose at a comfortable line length. */
+  --measure: 66ch;
+  --measure-tight: 52ch;
+
+  /* ── Surface & elevation vocabulary ─────────────────────────────────
+     1px limestone hairlines, a gold accent hairline, and three soft,
+     large-radius panel shadows. Deliberately diffuse (large negative
+     spread) so panels feel like lifted paper, never like a UI card. */
+  --hairline: rgba(18, 40, 58, 0.1);
+  --hairline-strong: rgba(18, 40, 58, 0.16);
+  --gold-hairline: rgba(176, 140, 82, 0.72);
+  --shadow-panel:
+    0 1px 0 rgba(18, 40, 58, 0.04), 0 18px 44px -34px rgba(18, 40, 58, 0.4);
+  --shadow-lift:
+    0 2px 0 rgba(18, 40, 58, 0.04), 0 34px 72px -42px rgba(18, 40, 58, 0.55);
+  --shadow-float: 0 40px 90px -34px rgba(18, 40, 58, 0.42);
+
+  /* Focus ring — a darkened antique gold (4.69:1 on paper, clears WCAG 2.2
+     non-text 3:1) with a contrasting halo so it stays legible on both the
+     cream panels and the cobble bands. */
+  --focus-ring: #8a6b2f;
+  --focus-halo-light: rgba(250, 248, 244, 0.9);
+  --focus-halo-dark: rgba(18, 40, 58, 0.9);
+}
+
+/**
+ * Force-light scope. The brand is a LIGHT editorial identity (warm paper), and
+ * the public surfaces (landing, Journal, reader) were designed light — their
+ * text uses light-only brand tokens (`text-cobble-ink`, `text-iron-ink`) that are
+ * near-invisible on the `.dark` background. Rather than churn every token,
+ * public surfaces opt OUT of dark mode with this class: it re-declares the
+ * light values with higher specificity than `.dark`, so everything inside keeps
+ * the exact light look. The authenticated app keeps full dark-mode theming.
+ */
+.dark .force-light,
+.force-light {
+  --background: var(--cl-paper, #faf8f4); /* brand paper, canon by default */
+  --foreground: #12283a;
+  --card: #ffffff;
+  --card-foreground: #12283a;
+  --popover: #ffffff;
+  --popover-foreground: #12283a;
+  --primary: #12283a;
+  --primary-foreground: #faf8f4;
+  --secondary: var(--cl-limestone, #d6c0a2);
+  --secondary-foreground: #12283a;
+  --muted: #f1ede6;
+  --muted-foreground: #4a4a49;
+  --accent: #edf2f6;
+  --accent-foreground: #12283a;
+  --destructive: #b5471f;
+  --border: #e4ded3;
+  --input: #8a8578;
+  --ring: #b08c52;
+  --gold-text: #6b5019;
+  /* Force-light re-pins the ink back to the brand dark pair. */
+  --ink: #12283a;
+  --ink-muted: #4a4a49;
+  --amber-text: #8a5d08;
+  --danger-text: #b04a48;
+  --olive-text: #24331a;
+  --coral-text: #a8443f;
+  --teal-text: #0a6b76;
+  --sky-text: #3a5a7a;
+  --limestone-text: #6b5535;
+  color-scheme: light;
+  /* Re-pinning the custom properties is not enough on its own: an element that
+     only sets `bg-background` still INHERITS `color` from the dark body above,
+     so its text stays cream on the new light ground (~1.2:1). Both declarations
+     are required for the scope to actually read as light. */
+  color: var(--foreground);
+  background-color: var(--background);
+}
+
+/* Dark theme for the authenticated app. */
+.dark {
+  --background: #0e1b27;
+  --foreground: #e8e2d6;
+  --card: #16283a;
+  --card-foreground: #e8e2d6;
+  --popover: #16283a;
+  --popover-foreground: #e8e2d6;
+  --primary: #b08c52;
+  --primary-foreground: #12283a;
+  --secondary: #24405a;
+  --secondary-foreground: #e8e2d6;
+  --muted: #1b3145;
+  --muted-foreground: #a8b4be;
+  --accent: #24405a;
+  --accent-foreground: #e8e2d6;
+  --destructive: #b5471f;
+  --border: #24405a;
+  --input: #24405a;
+  --ring: #b08c52;
+  --sidebar: #0e1b27;
+  --sidebar-foreground: #e8e2d6;
+  --sidebar-primary: #b08c52;
+  --sidebar-primary-foreground: #12283a;
+  --sidebar-accent: #16283a;
+  --sidebar-accent-foreground: #e8e2d6;
+  --sidebar-border: #24405a;
+  --sidebar-ring: #b08c52;
+  /* Dark grounds carry the exact brand gold — it clears AA there. */
+  --gold-text: #caaa68;
+  /* Body ink flips to cream/steel so `text-cobble-ink` / `text-iron-ink` stay legible. */
+  --ink: #e8e2d6;
+  --ink-muted: #a8b4be;
+  --amber-text: #e8b94e;
+  --danger-text: #e89a98;
+  --olive-text: #9dc48c;
+  --coral-text: #f0a6a4;
+  --teal-text: #5fd4de;
+  --sky-text: #9fbeda;
+  --limestone-text: #e4c9a8;
+}
+
+/**
+ * Ground-aware text ink.
+ *
+ * Custom properties inherit, so re-pinning `--ink` / `--ink-muted` (and the
+ * amber/danger inks) on a ground element flips every `text-cobble-ink`,
+ * `text-iron-ink`, `text-amber-ink`, `text-danger-ink` inside it.
+ *
+ * Only *fixed* grounds are pinned. The theme-dependent classes (`bg-card`,
+ * `bg-background`, `bg-muted`, `bg-secondary`) are deliberately NOT listed:
+ * they are light in the light theme and dark in the dark theme, so they must
+ * inherit the root/.dark values rather than have one pinned on them.
+ */
+.bg-cobble,
+.bg-sidebar,
+.on-cobble {
+  --gold-text: #caaa68;
+  --ink: #e8e2d6;
+  --ink-muted: #a8b4be;
+  --amber-text: #e8b94e;
+  --danger-text: #e89a98;
+  --olive-text: #9dc48c;
+  --coral-text: #f0a6a4;
+  --teal-text: #5fd4de;
+  --sky-text: #9fbeda;
+  --limestone-text: #e4c9a8;
+}
+/* Dim ink ON the dark chrome (sidebar labels, drawer meta). Owned by the
+   `chrome.textDim` brand token: the chrome is the one always-dark ground, so
+   its secondary text is a fill the operator may restyle. */
+.on-cobble-dim {
+  color: var(--cl-chrome-text-dim, #b9c4ce);
+}
+
+/* bg-primary is theme-dependent (cobble in light, gold in dark); only the gold
+   token is re-pinned there — pinning body ink would break the dark primary
+   chip, which needs its own dark foreground. */
+.bg-primary {
+  --gold-text: #caaa68;
+}
+/* Limestone is a warm, always-light mid-tone; it needs deeper inks to clear AA. */
+.bg-limestone {
+  --gold-text: #5f4a1e;
+  --ink: #2e2110;
+  --ink-muted: #3f2f18;
+  --amber-text: #5e3f04;
+  --danger-text: #7a2626;
+  --olive-text: #1e2a14;
+  --coral-text: #8a342f;
+  --teal-text: #08525b;
+  --sky-text: #2c465f;
+  --limestone-text: #4a3a22;
+}
+/* Fixed light panels keep dark ink even under the dark theme. `bg-gold` is a
+   full brand-gold fill (count badges, primary CTAs) — it is a light ground in
+   BOTH themes, so dark ink is always correct there. */
+.bg-gold,
+.paper-texture,
+.bg-\[#F5F1EA\],
+.bg-\[#FAF8F4\],
+.bg-\[#F1EDE6\],
+.bg-\[#EDF2F6\],
+.bg-white {
+  --gold-text: #6b5019;
+  --ink: #12283a;
+  --ink-muted: #4a4a49;
+  --amber-text: #8a5d08;
+  --danger-text: #b04a48;
+  --olive-text: #24331a;
+  --coral-text: #a8443f;
+  --teal-text: #0a6b76;
+  --sky-text: #3a5a7a;
+  --limestone-text: #6b5535;
+}
+
+/* A translucent sheen over whatever gold the theme resolves, so a full gold
+   fill reads as a struck surface rather than a flat swatch. Translucent rather
+   than a hardcoded gradient so it follows `--color-gold` in every theme
+   (including the brand-colour override in settings). */
+.bg-gold {
+  background-image: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.2),
+    rgba(0, 0, 0, 0.08)
+  );
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    /* Native-app feel: kill the grey flash on tap, stop iOS inflating text in
+       landscape, and keep the page from bouncing the whole viewport (which
+       reveals browser chrome mid-task). `color-scheme` also themes native form
+       controls + scrollbars to match the active theme. */
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    overscroll-behavior-y: none;
+    scroll-behavior: smooth;
+    /* Reserve the scrollbar gutter so navigating between a short view and a
+       long one never shifts the layout sideways. */
+    scrollbar-gutter: stable;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "ss01", "cv05";
+    /* Momentum scrolling inside panes, and no rubber-band on the shell. */
+    -webkit-overflow-scrolling: touch;
+  }
+  /* Interactive elements respond instantly (no 300ms tap delay) and never
+     reflow on focus. */
+  button,
+  a,
+  [role="button"],
+  select,
+  summary,
+  label[for] {
+    touch-action: manipulation;
+  }
+  /* The hand cursor, restored app-wide.
+     Tailwind v4's preflight leaves buttons at the platform default
+     (`cursor: default`); v3 had set `pointer`. Nothing had opted back in, so
+     8 of 9 controls on the guided intake, 25 of 27 in the RM queue and 52 of 54
+     in Settings showed the arrow cursor — every button read as static text
+     until it was clicked. Declared once here rather than at several hundred
+     call sites, and paired with the not-allowed cursor the disabled styles
+     already assume. */
+  button:not(:disabled),
+  a[href],
+  [role="button"]:not([aria-disabled="true"]),
+  select:not(:disabled),
+  summary,
+  label[for],
+  /* Text fields keep the I-beam, which is correct for typing; the controls
+     that are pure affordances take the hand. */
+  input[type="checkbox"]:not(:disabled),
+  input[type="radio"]:not(:disabled),
+  input[type="file"]:not(:disabled) {
+    cursor: pointer;
+  }
+  button:disabled,
+  select:disabled,
+  [role="button"][aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+  ::selection {
+    background: rgba(199, 157, 82, 0.28);
+  }
+  /* Respect the OS reduce-motion switch for the smooth-scroll above. */
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
+}
+
+/* ─────────── Editorial devices ─────────── */
+
+.font-editorial {
+  font-family:
+    "Hiragino Mincho ProN", "Hiragino Mincho", "Yu Mincho", var(--font-mincho),
+    Georgia, serif;
+}
+
+/* Thin brand rule used under editorial headings (like the PDF) */
+.brand-rule::after {
+  content: "";
+  display: block;
+  width: 88px;
+  height: 2px;
+  background: #12283a;
+  margin-top: 14px;
+}
+.brand-rule-gold::after {
+  background: #b08c52;
+}
+
+/* Rotating "LET'S CREATE TOMORROW" ring — slow, restrained */
+@keyframes ring-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+.ring-spin {
+  animation: ring-spin 28s linear infinite;
+  transform-origin: center;
+}
+
+/* Shimmer animation for skeleton loading states */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Loader path: spin a PROMOTED WRAPPER around a static ring rather than the
+   SVG `<g>`. Transforming live SVG text re-rasterises the glyphs every frame;
+   transforming a layer with `will-change` lets the compositor rotate a bitmap.
+   Visually identical to .ring-spin, materially cheaper per frame. */
+.ring-spin-layer {
+  display: inline-block;
+  animation: ring-spin 28s linear infinite;
+  transform-origin: center;
+  will-change: transform;
+}
+
+/* Breathing seal — the loader's heartbeat (the ring above turns around it) */
+@keyframes seal-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.07);
+  }
+}
+.seal-pulse {
+  animation: seal-pulse 1.7s ease-in-out infinite;
+  transform-origin: center;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ring-spin,
+  .ring-spin-layer {
+    animation: none;
+  }
+  * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
+/* Brand paper texture (subtle) — echoes the PDF's plaster texture.
+   Plaster is brand-owned (canon #F5F1EA), shared with `.lattice-band`. */
+.paper-texture {
+  background-color: var(--cl-plaster, #f5f1ea);
+  background-image: radial-gradient(
+    rgba(18, 40, 58, 0.035) 1px,
+    transparent 1px
+  );
+  background-size: 18px 18px;
+}
+
+/* Skeleton shimmer — a slow gold-tinted sweep across warm plaster, not the
+   generic grey `animate-pulse`. Reads as "setting type", not as a spinner.
+   The base tint stays the muted token so it sits on any surface. */
+@keyframes skeleton-sweep {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+.skeleton-shimmer {
+  background-color: var(--muted);
+  background-image: linear-gradient(
+    100deg,
+    rgba(199, 157, 82, 0) 20%,
+    rgba(199, 157, 82, 0.16) 50%,
+    rgba(199, 157, 82, 0) 80%
+  );
+  background-size: 200% 100%;
+  background-repeat: no-repeat;
+  animation: skeleton-sweep 1.9s ease-in-out infinite;
+}
+
+/* Wizard step entrance — a restrained editorial settle, never a slide-in from
+   off-canvas. Deliberately short so back/forward navigation feels instant. */
+@keyframes fade-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.fade-rise {
+  animation: fade-rise 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Hairline underline that draws in from the left on hover — used on editorial
+   link-style affordances so the hover reads as an inked rule, not a colour pop. */
+.rule-link {
+  position: relative;
+}
+.rule-link::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -2px;
+  height: 1px;
+  width: 100%;
+  background: #b08c52;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.rule-link:hover::after,
+.rule-link:focus-visible::after {
+  transform: scaleX(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-shimmer,
+  .fade-rise {
+    animation: none;
+  }
+  .rule-link::after {
+    transition: none;
+  }
+}
+
+/* Gold lattice pattern for hero bands — faithful to the graphic device page:
+   thin gold line lattice of square-in-square frames, corner diamonds at tile
+   junctions, on plaster. (PDF p.19)
+
+   Held at 0.22 stroke-opacity, not the printed strength: across a full hero the
+   lattice is a large area, and at higher opacity it stopped reading as an
+   engraved watermark and started reading as yellow wallpaper. */
+.lattice-band {
+  background-color: var(--cl-plaster, #f5f1ea);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64' fill='none' stroke='%23B08C52' stroke-opacity='0.22' stroke-width='1'%3E%3Crect x='10' y='10' width='44' height='44'/%3E%3Crect x='17' y='17' width='30' height='30'/%3E%3Crect x='24.5' y='24.5' width='15' height='15' transform='rotate(45 32 32)'/%3E%3Cpath d='M10 10L0 0M54 10l10-10M10 54L0 64M54 54l10 10'/%3E%3C/svg%3E");
+  background-size: 64px 64px;
+}
+
+/* Custom scrollbars — slim, discreet */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #d9d2c5;
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #b08c52;
+}
+
+/* Focus visibility (WCAG 2.2 AA) — resolved through --focus-ring so the
+   3:1 token fix above applies to every natively focused element. */
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+/* Status dot pulse for live counters */
+@keyframes dot-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+.dot-pulse {
+  animation: dot-pulse 2s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dot-pulse {
+    animation: none;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Editorial type utilities — the fluid ramp as opt-in classes so headings
+   share one scale. Sizes come from the clamp() tokens above; line-height and
+   balance are tuned for Mincho-class serif display type.
+   ═══════════════════════════════════════════════════════════════════════ */
+.type-display {
+  font-size: var(--text-display);
+  line-height: 1.04;
+  letter-spacing: -0.012em;
+  text-wrap: balance;
+}
+.type-h1 {
+  font-size: var(--text-h1);
+  line-height: 1.08;
+  letter-spacing: -0.008em;
+  text-wrap: balance;
+}
+.type-h2 {
+  font-size: var(--text-h2);
+  line-height: 1.14;
+  letter-spacing: -0.004em;
+  text-wrap: balance;
+}
+.type-h3 {
+  font-size: var(--text-h3);
+  line-height: 1.24;
+  text-wrap: balance;
+}
+.type-lead {
+  font-size: var(--text-lead);
+  line-height: 1.65;
+}
+/* The uppercase letter-spaced eyebrow — one definition, used everywhere. */
+.eyebrow {
+  font-size: var(--text-eyebrow);
+  line-height: 1.2;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-eyebrow);
+}
+.eyebrow-tight {
+  letter-spacing: var(--tracking-eyebrow-tight);
+}
+.measure {
+  max-width: var(--measure);
+}
+.measure-tight {
+  max-width: var(--measure-tight);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Link underline-sweep — a gold rule that inks in from the left on hover /
+   focus. `.rule-link` (above) is the short editorial rule; `.link-sweep`
+   draws a full-width hairline under inline links.
+   ═══════════════════════════════════════════════════════════════════════ */
+.link-sweep {
+  position: relative;
+  display: inline-block;
+}
+.link-sweep::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0.02em;
+  height: 1px;
+  width: 100%;
+  background: var(--color-gold);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--dur-slow) var(--ease-out-expo);
+}
+.link-sweep:hover::after,
+.link-sweep:focus-visible::after {
+  transform: scaleX(1);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Scroll-reveal system.
+   Content is visible by default (SSR / no-JS safe). The `Reveal` component
+   adds `.reveal-init` on mount for below-the-fold elements only, then
+   `.is-visible` when they intersect the viewport. Every animation is inside
+   a `no-preference` guard so reduced-motion users get a static page.
+   ═══════════════════════════════════════════════════════════════════════ */
+@keyframes reveal-up {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 22px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes reveal-mask {
+  from {
+    opacity: 0;
+    clip-path: inset(0 0 92% 0);
+    transform: translate3d(0, 14px, 0);
+  }
+  to {
+    opacity: 1;
+    clip-path: inset(0 0 0 0);
+    transform: none;
+  }
+}
+@keyframes reveal-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.reveal-init {
+  opacity: 0;
+  will-change: opacity, transform;
+}
+.reveal.is-visible {
+  animation: reveal-up var(--dur-reveal) var(--ease-out-expo) both;
+  animation-delay: var(--reveal-delay, 0ms);
+}
+.reveal-mask.is-visible {
+  animation-name: reveal-mask;
+}
+.reveal-fade.is-visible {
+  animation-name: reveal-fade;
+}
+
+/* One-shot entrance for above-the-fold content (hero). Runs on mount. */
+@keyframes enter-settle {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 18px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.enter {
+  animation: enter-settle 0.9s var(--ease-out-expo) both;
+  animation-delay: var(--enter-delay, 0ms);
+}
+.enter-rule {
+  transform-origin: left;
+  animation: rule-grow 0.9s var(--ease-out-expo) both;
+  animation-delay: var(--enter-delay, 0ms);
+}
+@keyframes rule-grow {
+  from {
+    transform: scaleX(0);
+    opacity: 0;
+  }
+  to {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Guided-intake step transitions — a directional page-turn. Forward steps
+   settle in from the right, Back from the left, so the motion reads as
+   movement through a sequence.
+   ═══════════════════════════════════════════════════════════════════════ */
+@keyframes step-in-right {
+  from {
+    opacity: 0;
+    transform: translate3d(26px, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes step-in-left {
+  from {
+    opacity: 0;
+    transform: translate3d(-26px, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.step-in-right {
+  animation: step-in-right var(--dur-base) var(--ease-out-expo) both;
+}
+.step-in-left {
+  animation: step-in-left var(--dur-base) var(--ease-out-expo) both;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Surface & interaction vocabulary.
+   ═══════════════════════════════════════════════════════════════════════ */
+/* White/lifted paper panel with a 1px hairline and a soft diffuse shadow. */
+.panel {
+  background: var(--card);
+  border: 1px solid var(--hairline);
+  box-shadow: var(--shadow-panel);
+}
+/* The hero lockup panel — same vocabulary, deepest elevation. */
+.panel-float {
+  background: var(--card);
+  border: 1px solid var(--hairline);
+  box-shadow: var(--shadow-float);
+}
+/* Interactive card: lifts, golds its hairline, and warms its shadow on hover. */
+.card-hover {
+  transition:
+    transform var(--dur-base) var(--ease-out-quint),
+    box-shadow var(--dur-base) var(--ease-out-quint),
+    border-color var(--dur-base) var(--ease-out-quint),
+    background-color var(--dur-base) var(--ease-out-quint);
+}
+.card-hover:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lift);
+}
+/* Editorial cards (borderless list items) lift without casting a panel
+   shadow — the paper stays paper; only the position moves. */
+.card-lift {
+  transition:
+    transform var(--dur-base) var(--ease-out-quint),
+    border-color var(--dur-base) var(--ease-out-quint);
+}
+.card-lift:hover {
+  transform: translateY(-4px);
+}
+/* Hover gold shading — a faint gold wash that blooms from the pointer. */
+.gold-wash {
+  position: relative;
+  isolation: isolate;
+}
+.gold-wash::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: radial-gradient(
+    120% 90% at 50% 0%,
+    rgba(199, 157, 82, 0.14),
+    transparent 62%
+  );
+  opacity: 0;
+  transition: opacity var(--dur-slow) var(--ease-out-quint);
+  pointer-events: none;
+}
+.gold-wash:hover::before {
+  opacity: 1;
+}
+
+/* Gold hairline accent — the top rule the brand uses to open a block. */
+.gold-hairline-top {
+  position: relative;
+}
+.gold-hairline-top::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 1px;
+  background: linear-gradient(90deg, var(--gold-hairline), transparent 72%);
+}
+
+/* Gentle seal drift — a slow ±2° sway so a static mark still feels alive. */
+@keyframes seal-drift {
+  0%,
+  100% {
+    transform: rotate(-1.5deg);
+  }
+  50% {
+    transform: rotate(1.5deg);
+  }
+}
+.seal-drift {
+  animation: seal-drift 9s var(--ease-in-out-brand) infinite;
+  transform-origin: center;
+}
+.seal-drift-hover {
+  transition: transform var(--dur-slow) var(--ease-out-expo);
+}
+.group:hover .seal-drift-hover {
+  transform: rotate(6deg) scale(1.03);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Focus visibility — the base ring lives in `:focus-visible` above. These
+   strengthen it on the two panel grounds so it never vanishes.
+   ═══════════════════════════════════════════════════════════════════════ */
+.focus-gold:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px var(--focus-halo-light);
+}
+.on-cobble .focus-gold:focus-visible,
+.focus-gold.on-cobble:focus-visible {
+  box-shadow: 0 0 0 4px var(--focus-halo-dark);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Component vocabulary — the recurring product surfaces (choice cards, wizard
+   progress rail, form fields, the CTA pair) are declared ONCE here so views
+   compose semantic classes instead of repeating twenty-utility strings and
+   drifting apart. Anything used on two or more screens belongs here.
+
+   These are deliberately UNLAYERED (like `.panel`, `.card-hover`, `.focus-gold`
+   above), not inside `@layer components`: Tailwind puts its utilities in the
+   `utilities` cascade layer, and unlayered CSS outranks every layer — so a skin
+   defined here reliably dresses a `<Button>` whose own variant utilities
+   (`bg-primary`, `hover:bg-primary/90`) would otherwise win. A view still
+   overrides any single property by passing its own utility.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── Choice card (guided intake: intent + route) ───────────────────── */
+.choice {
+  position: relative;
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 1.4rem 1.5rem;
+  background: var(--card);
+  border: 1px solid var(--hairline-strong);
+  transition:
+    transform var(--dur-base) var(--ease-out-quint),
+    box-shadow var(--dur-base) var(--ease-out-quint),
+    border-color var(--dur-base) var(--ease-out-quint),
+    background-color var(--dur-base) var(--ease-out-quint);
+}
+.choice:hover {
+  transform: translateY(-3px);
+  border-color: var(--color-gold);
+  box-shadow: var(--shadow-lift);
+}
+.choice:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
+}
+.choice[aria-checked="true"] {
+  border-color: var(--color-gold);
+  background: color-mix(in oklab, var(--color-gold) 8%, var(--card));
+}
+.choice__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.choice__index {
+  flex: none;
+  font-family: var(--font-editorial);
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--gold-text);
+}
+.choice__title {
+  font-family: var(--font-editorial);
+  font-size: var(--text-h3);
+  line-height: 1.25;
+  color: var(--color-cobble);
+  text-wrap: balance;
+}
+.choice__body {
+  display: block;
+  margin-top: 0.4rem;
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: var(--color-iron);
+}
+.choice__meta {
+  display: block;
+  margin-top: 0.6rem;
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}
+/* The rule that inks in under a card on hover / when selected. */
+.choice__rule {
+  display: block;
+  margin-top: 0.95rem;
+  height: 1px;
+  width: 2rem;
+  background: var(--color-limestone);
+  transition:
+    width var(--dur-base) var(--ease-out-quint),
+    background-color var(--dur-base) var(--ease-out-quint);
+}
+.choice:hover .choice__rule,
+.choice[aria-checked="true"] .choice__rule {
+  width: 4rem;
+  background: var(--color-gold);
+}
+
+/* ── Form field ────────────────────────────────────────────────────── */
+.lane-field {
+  margin-top: 0.4rem;
+  display: block;
+  width: 100%;
+  border: 1px solid var(--input);
+  background: var(--background);
+  padding: 0.7rem 0.85rem;
+  font-size: 0.9rem;
+  color: var(--color-cobble);
+  border-radius: 0;
+  outline: none;
+  transition:
+    border-color var(--dur-fast) ease,
+    box-shadow var(--dur-fast) ease;
+}
+.lane-field:hover {
+  border-color: var(--color-cobble);
+}
+.lane-field:focus-visible {
+  border-color: var(--color-gold);
+  box-shadow: 0 0 0 3px rgba(199, 157, 82, 0.18);
+}
+.lane-field[aria-invalid="true"] {
+  border-color: #8c2f2f;
+}
+.lane-field[aria-invalid="true"]:focus-visible {
+  border-color: #8c2f2f;
+  box-shadow: 0 0 0 3px rgba(140, 47, 47, 0.16);
+}
+
+/* ── Wizard progress rail ──────────────────────────────────────────── */
+.rail-node {
+  display: grid;
+  place-items: center;
+  height: 1.75rem;
+  width: 1.75rem;
+  border: 1px solid var(--color-limestone);
+  background: var(--card);
+  font-size: 0.7rem;
+  font-weight: 600;
+  transition:
+    color var(--dur-base) ease,
+    background-color var(--dur-base) ease,
+    border-color var(--dur-base) ease;
+}
+.rail-node--done {
+  border-color: var(--color-gold);
+  background: var(--color-gold);
+  color: #f5f1ea;
+}
+.rail-node--current {
+  border-color: var(--color-gold);
+  background: var(--card);
+  color: var(--gold-text);
+}
+.rail-node--upcoming {
+  color: var(--muted-foreground);
+}
+
+/* ── CTA pair ────────────────────────────────────────────────────────
+   The cobble primary button and its hairline companion repeat across ~9
+   views. Colour, radius, tracking and motion live here; a view only chooses
+   its own size utilities. */
+.cta {
+  background-color: var(--color-cobble);
+  color: #f5f1ea;
+  border-radius: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  transition:
+    background-color var(--dur-fast) ease,
+    box-shadow var(--dur-base) ease;
+}
+.cta:hover {
+  background-color: var(--cl-chrome-hover, #1b3a54);
+}
+.cta:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   OMEGA polish — refined micro-interactions, skeleton surfaces, and
+   page-transition vocabulary. These layer on top of the existing system.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── Skeleton surfaces ────────────────────────────────────────────────
+   A skeleton is a promise of content: it mirrors the shape of what is
+   loading so the layout never jumps when data arrives. The shimmer is a
+   slow gold sweep — the same device as the loader, so a loading surface
+   reads as the brand, not as a generic grey pulse. */
+@keyframes skeleton-wave {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--muted);
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(199, 157, 82, 0.08),
+    transparent
+  );
+  animation: skeleton-wave 1.8s ease-in-out infinite;
+}
+.skeleton-text {
+  height: 0.875em;
+  border-radius: 2px;
+}
+.skeleton-circle {
+  border-radius: 9999px;
+}
+.skeleton-card {
+  border-radius: var(--radius);
+}
+
+/* ── Page-transition vocabulary ───────────────────────────────────────
+   Route changes get a subtle fade-and-rise so navigation feels like
+   turning a page, not flashing a new screen. The `page-enter` class is
+   applied by the shell's ViewRouter on each view mount. */
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.page-enter {
+  animation: page-enter var(--dur-base) var(--ease-out-expo) both;
+}
+
+/* Staggered children — apply to a parent with `--stagger` children. */
+@keyframes stagger-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.stagger > * {
+  animation: stagger-in var(--dur-base) var(--ease-out-expo) both;
+}
+.stagger > *:nth-child(1) {
+  animation-delay: 0ms;
+}
+.stagger > *:nth-child(2) {
+  animation-delay: 40ms;
+}
+.stagger > *:nth-child(3) {
+  animation-delay: 80ms;
+}
+.stagger > *:nth-child(4) {
+  animation-delay: 120ms;
+}
+.stagger > *:nth-child(5) {
+  animation-delay: 160ms;
+}
+.stagger > *:nth-child(6) {
+  animation-delay: 200ms;
+}
+.stagger > *:nth-child(7) {
+  animation-delay: 240ms;
+}
+.stagger > *:nth-child(8) {
+  animation-delay: 280ms;
+}
+.stagger > *:nth-child(n + 9) {
+  animation-delay: 320ms;
+}
+
+/* ── Button press feedback ────────────────────────────────────────────
+   A subtle scale-down on active gives tactile confirmation that the
+   press registered — the same physical metaphor as a real button. */
+.btn-press {
+  transition:
+    transform var(--dur-fast) var(--ease-out-quint),
+    box-shadow var(--dur-fast) var(--ease-out-quint),
+    background-color var(--dur-fast) var(--ease-out-quint),
+    border-color var(--dur-fast) var(--ease-out-quint),
+    color var(--dur-fast) var(--ease-out-quint);
+}
+.btn-press:active {
+  transform: scale(0.97);
+}
+
+/* ── Icon micro-interaction ───────────────────────────────────────────
+   Icons in interactive contexts get a subtle scale on hover so the
+   whole element feels alive, not just the text label. */
+.icon-lift {
+  transition: transform var(--dur-fast) var(--ease-out-quint);
+}
+.icon-lift:hover {
+  transform: scale(1.08);
+}
+.group:hover .icon-lift,
+.group:focus-visible .icon-lift {
+  transform: scale(1.08);
+}
+
+/* ── Toast slide-in ───────────────────────────────────────────────────
+   Toasts enter from the top-right with a soft settle, matching the
+   editorial rhythm of the rest of the system. */
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-12px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.toast-enter {
+  animation: toast-in var(--dur-base) var(--ease-out-expo) both;
+}
+
+/* ── Modal scale-in ───────────────────────────────────────────────────
+   Dialogs and sheets scale up from 98% with a fade — a gentle "materialise"
+   that feels more refined than a plain fade. */
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.modal-enter {
+  animation: modal-in var(--dur-base) var(--ease-out-expo) both;
+}
+
+/* ── Dropdown slide-in ───────────────────────────────────────────────
+   Menus and popovers slide down from the trigger with a soft settle. */
+@keyframes dropdown-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.dropdown-enter {
+  animation: dropdown-in var(--dur-fast) var(--ease-out-quint) both;
+}
+
+/* ── Progress bar shimmer ────────────────────────────────────────────
+   Indeterminate progress bars get a moving highlight so they read as
+   "working" rather than "stuck". Uses transform (GPU-accelerated)
+   instead of background-position animation. */
+@keyframes progress-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+.progress-shimmer {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-gold);
+}
+.progress-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.4) 50%,
+    transparent 100%
+  );
+  animation: progress-shimmer 1.5s ease-in-out infinite;
+}
+
+/* ── Pulse ring for live indicators ──────────────────────────────────
+   A soft expanding ring around a live dot — used for "online" status
+   and real-time counters. */
+@keyframes pulse-ring {
+  0% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+.pulse-ring::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: currentColor;
+  animation: pulse-ring 2s var(--ease-out-expo) infinite;
+}
+
+/* ── Shimmer text for loading labels ─────────────────────────────────
+   A gold shimmer that sweeps across loading text — "Loading…" reads
+   as a brand moment, not a system message. Uses transform
+   (GPU-accelerated) instead of background-position animation. */
+@keyframes text-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+.text-shimmer {
+  position: relative;
+  overflow: hidden;
+  color: var(--muted-foreground);
+}
+.text-shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--gold-text) 50%,
+    transparent 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: text-shimmer 2s ease-in-out infinite;
+}
+
+/* ── Card entrance ───────────────────────────────────────────────────
+   Cards that appear after data loads get a soft fade-and-rise. */
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.card-in {
+  animation: card-in var(--dur-slow) var(--ease-out-expo) both;
+}
+
+/* ── Fade-in for overlays ────────────────────────────────────────────
+   Backdrops and overlays fade in softly. */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.fade-in {
+  animation: fade-in var(--dur-base) ease both;
+}
+
+/* ── Slide-in from right (drawers) ─────────────────────────────────── */
+@keyframes slide-in-right {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: none;
+  }
+}
+.slide-in-right {
+  animation: slide-in-right var(--dur-base) var(--ease-out-expo) both;
+}
+
+/* ── Slide-in from left ────────────────────────────────────────────── */
+@keyframes slide-in-left {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: none;
+  }
+}
+.slide-in-left {
+  animation: slide-in-left var(--dur-base) var(--ease-out-expo) both;
+}
+
+/* ── Slide-in from bottom (mobile sheets) ──────────────────────────── */
+@keyframes slide-in-bottom {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: none;
+  }
+}
+.slide-in-bottom {
+  animation: slide-in-bottom var(--dur-base) var(--ease-out-expo) both;
+}
+
+/* ── Spin for loading indicators ───────────────────────────────────── */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+/* ── Tabular numerals ───────────────────────────────────────────────
+   All numeric displays (amounts, dates, counts, percentages) use
+   tabular-nums so digits don't jitter when values change. Apply to
+   any element that renders dynamic numbers. */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Text wrap balance for body text ───────────────────────────────
+   Headings already use `text-wrap: balance` (see .type-display etc.).
+   Body text uses `text-wrap: pretty` to prevent orphans without
+   over-balancing short lines. */
+.text-pretty {
+  text-wrap: pretty;
+}
+
+/* ── Bounce for attention ──────────────────────────────────────────── */
+@keyframes bounce-soft {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+.bounce-soft {
+  animation: bounce-soft 2s var(--ease-in-out-brand) infinite;
+}
+
+/* ── Wiggle for subtle attention ──────────────────────────────────── */
+@keyframes wiggle {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  25% {
+    transform: rotate(-3deg);
+  }
+  75% {
+    transform: rotate(3deg);
+  }
+}
+.wiggle {
+  animation: wiggle 0.5s var(--ease-in-out-brand);
+}
+
+/* ── Glow pulse for CTAs ─────────────────────────────────────────────
+   A subtle gold glow that pulses on primary CTAs to draw the eye.
+   Uses transform + opacity (GPU-accelerated) instead of box-shadow
+   animation to stay on the compositor. */
+@keyframes glow-pulse {
+  0%,
+  100% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 0.15;
+    transform: scale(1.2);
+  }
+}
+.glow-pulse {
+  position: relative;
+  isolation: isolate;
+}
+.glow-pulse::before {
+  content: "";
+  position: absolute;
+  inset: -8px;
+  border-radius: inherit;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(199, 157, 82, 0.35),
+    transparent 70%
+  );
+  animation: glow-pulse 3s var(--ease-in-out-brand) infinite;
+  pointer-events: none;
+}
+
+/* ── Reduced motion ────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .reveal-init,
+  .reveal.is-visible,
+  .enter,
+  .enter-rule,
+  .step-in-right,
+  .step-in-left,
+  .seal-drift,
+  .link-sweep::after,
+  .page-enter,
+  .stagger > *,
+  .toast-enter,
+  .modal-enter,
+  .dropdown-enter,
+  .card-in,
+  .fade-in,
+  .slide-in-right,
+  .slide-in-left,
+  .slide-in-bottom,
+  .bounce-soft,
+  .wiggle,
+  .glow-pulse {
+    animation: none !important;
+    transition: none !important;
+  }
+  .reveal-init {
+    opacity: 1;
+  }
+  .card-hover:hover {
+    transform: none;
+  }
+  .card-lift:hover {
+    transform: none;
+  }
+  .seal-drift-hover,
+  .group:hover .seal-drift-hover {
+    transform: none;
+  }
+  .skeleton::after {
+    animation: none;
+  }
+  .progress-shimmer {
+    animation: none;
+  }
+  .text-shimmer {
+    animation: none;
+  }
+  .pulse-ring::before {
+    animation: none;
+  }
+}
+
+/* ─────────── User preferences (src/lib/ui-mode.ts) ───────────
+ * `applyPreferences()` sets four data attributes on <html>. Every visual
+ * consequence lives here so a preference can never desync from the CSS that
+ * reads it.
+ *
+ * Text size scales the root font-size, which scales every rem value in the app
+ * (Tailwind's spacing scale is rem-based), so text and its surrounding rhythm
+ * grow together. Density then scales Tailwind v4's single `--spacing` token, so
+ * `p-5`, `gap-3` and `mt-8` all tighten at once instead of needing a rule per
+ * utility. The two compose: large text with compact spacing is a real,
+ * intended combination.
+ */
+
+html[data-text-size="large"] {
+  font-size: 112.5%;
+} /* 18px base */
+html[data-text-size="xlarge"] {
+  font-size: 125%;
+} /* 20px base */
+
+html[data-density="compact"] {
+  --spacing: 0.2rem;
+}
+html[data-density="comfortable"] {
+  --spacing: 0.25rem;
+}
+
+/* ─────────── Surface profiles (src/lib/theme/index.ts) ───────────
+ * The consolidated product wears ONE brand across three working skins. A
+ * subtree tags itself with `data-surface`, and the profile changes rhythm,
+ * corner radius and separator weight — never a colour, so a console can never
+ * drift away from the brand. Every value here is consumed through the shared
+ * tokens; if `surfaceForView()` and this block ever disagree, the theme test
+ * fails.
+ *
+ *   editorial  public site, journal, procedure, auth surfaces (default skin)
+ *   client     the applicant's own portal
+ *   workspace  staff console: case desk, CRM, studio, automation, KYC, admin
+ */
+[data-surface="editorial"] {
+  --radius: 0.375rem;
+}
+
+[data-surface="client"] {
+  --radius: 0.5rem;
+  /* The applicant reads long-form status text — keep the calm measure. */
+  --measure: 66ch;
+}
+
+/* Console skin: squared corners, denser rhythm, stronger separators. The
+   hairlines are re-pinned two steps harder because dense tables stack dozens
+   of 1px rules and the paper-weight values disappear into moiré. */
+[data-surface="workspace"] {
+  --radius: 0.25rem;
+  --measure: 78ch;
+  --hairline: rgba(18, 40, 58, 0.16);
+  --hairline-strong: rgba(18, 40, 58, 0.26);
+}
+.dark [data-surface="workspace"] {
+  --hairline: rgba(232, 226, 214, 0.16);
+  --hairline-strong: rgba(232, 226, 214, 0.28);
+}
+/* The console never stretches a paragraph across a 27" display: body copy in a
+   workspace panel stops at the panel measure while tables stay full-bleed. */
+[data-surface="workspace"] .type-lead,
+[data-surface="client"] .type-lead {
+  max-width: var(--measure);
+}
+
+/* High contrast — deepen the separators and the secondary ink so borders and
+   muted copy clear AA on both grounds without touching the brand palette. */
+html[data-contrast="high"] {
+  --border: #8a8578;
+  --input: #8a8578;
+  --muted-foreground: #4a4a49;
+}
+html[data-contrast="high"].dark {
+  --border: #7e93a8;
+  --input: #7e93a8;
+  --muted-foreground: #cfd8e0;
+}
+html[data-contrast="high"] :focus-visible {
+  outline-width: 3px;
+  outline-offset: 2px;
+}
+
+/* Reduced motion as an explicit preference, mirroring the OS media query —
+   someone on a machine that does not expose the OS switch still gets stillness. */
+html[data-motion="reduced"] {
+  scroll-behavior: auto;
+}
+html[data-motion="reduced"] *,
+html[data-motion="reduced"] *::before,
+html[data-motion="reduced"] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+html[data-motion="reduced"] .reveal-init {
+  opacity: 1;
+}
+html[data-motion="reduced"] .card-hover:hover,
+html[data-motion="reduced"] .card-lift:hover {
+  transform: none;
+}
+html[data-motion="reduced"] .skeleton::after {
+  animation: none !important;
+}

@@ -107,6 +107,48 @@ export class EnvironmentVariables {
 
 	@IsOptional()
 	@IsString()
+	@MinLength(16, {
+		message: "MCP_AUTH_TOKEN must be at least 16 characters.",
+	})
+	MCP_AUTH_TOKEN?: string;
+
+	@IsOptional()
+	@IsString()
+	@MinLength(16, {
+		message: "N8N_TRIGGER_TOKEN must be at least 16 characters.",
+	})
+	N8N_TRIGGER_TOKEN?: string;
+
+	@IsOptional()
+	@IsString()
+	N8N_DEFAULT_OWNER_USER_ID?: string;
+
+	@IsOptional()
+	@IsString()
+	WORKSPACE_SECRETS_KEY?: string;
+
+	@IsOptional()
+	@IsString()
+	META_WEBHOOK_VERIFY_TOKEN?: string;
+
+	@IsOptional()
+	@IsString()
+	META_APP_ID?: string;
+
+	@IsOptional()
+	@IsString()
+	META_APP_SECRET?: string;
+
+	@IsOptional()
+	@IsString()
+	LINKEDIN_CLIENT_ID?: string;
+
+	@IsOptional()
+	@IsString()
+	LINKEDIN_CLIENT_SECRET?: string;
+
+	@IsOptional()
+	@IsString()
 	BLOB_READ_WRITE_TOKEN?: string;
 
 	@IsOptional()

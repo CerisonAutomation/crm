@@ -32,6 +32,23 @@ model User {
   conversations  AgentConversation[] @relation("ConversationOwner")
   fieldValues    FieldValue[]        @relation("FieldValueUser")
   savedViews     SavedView[]         @relation("SavedViewOwner")
+  appointmentTypes      AppointmentType[]
+  bookings              Booking[]
+  connectedAccounts     ConnectedAccount[]
+  channelMessages       ChannelMessage[]
+  sendClaims            SendClaim[]
+  agentRunReceipts      AgentRunReceipt[]
+  agentActionDrafts     AgentActionDraft[]
+  agentReflectionEvents AgentReflectionEvent[]
+  agentTasteSessions    AgentTasteSession[]
+  evalRuns              EvalRun[]
+  brains                Brain[]
+  soulProfiles          SoulProfile[]
+  workspaceSecrets      WorkspaceSecret[]
+  workspaceDomains      WorkspaceDomain[]
+  portalAccessCodes     PortalAccessCode[]
+  suppressionEntries    SuppressionEntry[]
+  ownedApplicationCases ApplicationCase[]
 
   createdAgentDefinitions AgentDefinition[]             @relation("AgentDefinitionCreator")
   createdAgentVersions    AgentVersion[]                @relation("AgentVersionCreator")
@@ -327,6 +344,8 @@ model Company {
   activities     Activity[]
   emailThreads   EmailThread[]
   calendarEvents CalendarEvent[]
+  applicationCases ApplicationCase[]
+  dueDiligenceProfiles DueDiligenceProfile[]
   fieldValues    FieldValue[]
   createdAt      DateTime            @default(now())
   updatedAt      DateTime            @updatedAt
@@ -392,6 +411,10 @@ model Contact {
   fieldValues     FieldValue[]
   visitors        TrackedVisitor[]   @relation("VisitorContact")
   submissions     FormSubmission[]   @relation("SubmissionContact")
+  applicationCases ApplicationCase[]
+  screeningRuns ScreeningRun[]
+  dueDiligenceProfiles DueDiligenceProfile[]
+  eligibilityAssessments EligibilityAssessment[]
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
 
@@ -1556,30 +1579,986 @@ model SsoProvider {
 model Apikey {
   id                  String    @id
   configId            String    @default("default")
-  name                String?
-  start               String?
+  name                String?  
+  start               String?  
   referenceId         String
   user                User      @relation(fields: [referenceId], references: [id], onDelete: Cascade)
-  prefix              String?
+  prefix              String?  
   key                 String
-  refillInterval      Int?
-  refillAmount        Int?
-  lastRefillAt        DateTime?
+  refillInterval      Int?     
+  refillAmount        Int?     
+  lastRefillAt        DateTime? 
   enabled             Boolean?  @default(true)
   rateLimitEnabled    Boolean?  @default(true)
-  rateLimitTimeWindow Int?
-  rateLimitMax        Int?
+  rateLimitTimeWindow Int?     
+  rateLimitMax        Int?     
   requestCount        Int?      @default(0)
-  remaining           Int?
-  lastRequest         DateTime?
-  expiresAt           DateTime?
+  remaining           Int?     
+  lastRequest         DateTime? 
+  expiresAt           DateTime? 
   createdAt           DateTime
   updatedAt           DateTime
-  permissions         String?
-  metadata            String?
+  permissions         String?  
+  metadata            String?  
 
   @@index([referenceId])
   @@index([configId])
   @@index([key])
   @@map("apikey")
+}
+
+// ════════════════════════════════════════════════════════════════════════════════
+// Citizen Lane models — converted from twenty-apps/internal/citizen-lane/src/objects
+// ════════════════════════════════════════════════════════════════════════════════
+
+enum CaseStage {
+  ASSESSMENT
+  AGREEMENT
+  PAYMENT
+  DOCUMENT_COLLECTION
+  RM_REVIEW
+  PREPARING_SUBMISSION
+  SUBMITTED
+  ON_HOLD
+  CLOSED
+}
+
+enum DocumentReviewStatus {
+  REQUESTED
+  UPLOADED
+  NEEDS_INFORMATION
+  APPROVED
+  EXPIRED
+}
+
+enum ScreeningRunStatus {
+  QUEUED
+  RUNNING
+  REVIEW_REQUIRED
+  CLEARED
+  FAILED
+  CANCELLED
+}
+
+enum DueDiligenceStatus {
+  NOT_STARTED
+  IN_REVIEW
+  INFORMATION_REQUIRED
+  APPROVED
+  DECLINED
+  EXPIRED
+}
+
+enum DueDiligenceLevel {
+  SDD
+  CDD
+  EDD
+}
+
+enum AssessmentStatus {
+  DRAFT
+  SUBMITTED
+  PROVISIONAL
+  REVIEWED
+  CLOSED
+}
+
+enum AssessmentOutcome {
+  VERY_HIGH
+  HIGH
+  MEDIUM
+  VERY_LOW
+  BESPOKE_REVIEW
+}
+
+enum ProviderConnectionStatus {
+  DRAFT
+  PENDING_APPROVAL
+  ENABLED
+  PAUSED
+  RETIRED
+}
+
+enum RouteStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  RETIRED
+}
+
+enum WorkItemStatus {
+  TODO
+  IN_PROGRESS
+  BLOCKED
+  DONE
+  ESCALATED
+}
+
+enum WorkItemPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum WorkflowStatus {
+  DRAFT
+  PUBLISHED
+  DISABLED
+}
+
+enum RunStatus {
+  RUNNING
+  WAITING_APPROVAL
+  WAITING_WORKFLOW
+  SUCCEEDED
+  FAILED
+  CANCELLED
+}
+
+enum NodeRunStatus {
+  RUNNING
+  SUCCEEDED
+  FAILED
+  WAITING_APPROVAL
+  WAITING_WORKFLOW
+  SKIPPED
+}
+
+enum WaitpointStatus {
+  WAITING
+  RESUMED
+  EXPIRED
+  CANCELLED
+}
+
+enum WaitpointKind {
+  APPROVAL
+  TIMER
+  EVENT
+  CALLBACK
+}
+
+enum AuditOutcome {
+  SUCCESS
+  FAILURE
+  INFO
+  BLOCKED
+}
+
+model ApplicationCase {
+  id            String      @id @default(cuid())
+  reference     String      @unique
+  routeName     String
+  stage         CaseStage   @default(ASSESSMENT)
+  mainApplicantCount Int    @default(1)
+  dependentCount Int        @default(0)
+  agreementSignedAt DateTime?
+  paymentStatus   String?
+  nextClientAction String?
+  nextAuthorityFollowUpAt DateTime?
+
+  contactId String?
+  contact   Contact?   @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  companyId String?
+  company   Company?   @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  ownerId   String?
+  owner     User?      @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+
+  documents     CaseDocument[]
+  screeningRuns ScreeningRun[]
+  dueDiligenceProfiles DueDiligenceProfile[]
+  eligibilityAssessments EligibilityAssessment[]
+  workItems     WorkItem[]
+  workflowRuns  WorkflowRun[]
+  auditEvents   AuditEvent[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([reference])
+  @@index([routeName])
+  @@index([stage])
+  @@index([contactId])
+  @@index([companyId])
+  @@index([ownerId])
+  @@map("applicationCase")
+}
+
+model CaseDocument {
+  id           String @id @default(cuid())
+  name         String
+  documentType String
+  reviewStatus DocumentReviewStatus @default(REQUESTED)
+  files        String?
+  issuedAt     DateTime?
+  validUntil   DateTime?
+  rmComment    String?
+  reviewedAt   DateTime?
+
+  caseId String
+  case   ApplicationCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([caseId])
+  @@index([reviewStatus])
+  @@map("caseDocument")
+}
+
+model ScreeningRun {
+  id                String @id @default(cuid())
+  reference         String @unique
+  provider          String
+  providerReference String?
+  status            ScreeningRunStatus @default(QUEUED)
+  screeningType     String?
+  resultSummary     String?
+  complianceDisposition String?
+  requestedAt       DateTime?
+  completedAt       DateTime?
+
+  caseId    String?
+  case      ApplicationCase? @relation(fields: [caseId], references: [id], onDelete: SetNull)
+  contactId String?
+  contact   Contact?   @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([reference])
+  @@index([status])
+  @@index([caseId])
+  @@index([contactId])
+  @@map("screeningRun")
+}
+
+model DueDiligenceProfile {
+  id                String @id @default(cuid())
+  reference         String @unique
+  status            DueDiligenceStatus @default(NOT_STARTED)
+  level             DueDiligenceLevel @default(CDD)
+  riskRating        String?
+  riskRationale     String?
+  pepStatus         String?
+  sanctionsStatus   String?
+  sourceOfFunds     String?
+  sourceOfWealth    String?
+  reviewedAt        DateTime?
+  nextReviewAt      DateTime?
+  reviewDecision    String?
+  evidenceFiles     String?
+
+  contactId String?
+  contact   Contact?   @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  companyId String?
+  company   Company?   @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  caseId    String?
+  case      ApplicationCase? @relation(fields: [caseId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([reference])
+  @@index([status])
+  @@index([contactId])
+  @@index([companyId])
+  @@map("dueDiligenceProfile")
+}
+
+model EligibilityAssessment {
+  id                String @id @default(cuid())
+  reference         String @unique
+  routeName         String
+  status            AssessmentStatus @default(DRAFT)
+  provisionalOutcome AssessmentOutcome?
+  evidenceAvailable Boolean @default(false)
+  questionnaireNotes String?
+  rmDecision        String?
+  reviewedAt        DateTime?
+
+  caseId    String?
+  case      ApplicationCase? @relation(fields: [caseId], references: [id], onDelete: SetNull)
+  contactId String?
+  contact   Contact?   @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([reference])
+  @@index([status])
+  @@index([caseId])
+  @@index([contactId])
+  @@map("eligibilityAssessment")
+}
+
+model ProviderConnection {
+  id               String @id @default(cuid())
+  name             String
+  provider         String
+  status           ProviderConnectionStatus @default(DRAFT)
+  permittedPurposes String
+  dataResidency    String?
+  approvalReference String?
+  lastHealthCheckAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([provider])
+  @@index([status])
+  @@map("providerConnection")
+}
+
+model ServiceRoute {
+  id          String @id @default(cuid())
+  name        String
+  country     String
+  category    String
+  summary     String?
+  entryCriteria String?
+  status      RouteStatus @default(DRAFT)
+  sortOrder   Int?
+  publiclyVisible Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([country])
+  @@index([category])
+  @@index([status])
+  @@map("serviceRoute")
+}
+
+model WorkItem {
+  id           String @id @default(cuid())
+  title        String
+  status       WorkItemStatus @default(TODO)
+  priority     WorkItemPriority @default(NORMAL)
+  type         String
+  workflowRunId String?
+  nodeRunId    String?
+  requiredRole String?
+  assignedTo   String?
+  body         String?
+  dueDate      DateTime?
+  completedAt  DateTime?
+  decision     String?
+  decisionReason String?
+  decisionBy   String?
+
+  caseIdRef    String?
+  case         ApplicationCase? @relation(fields: [caseIdRef], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([priority])
+  @@index([type])
+  @@index([caseIdRef])
+  @@index([assignedTo])
+  @@map("workItem")
+}
+
+model Workflow {
+  id           String @id @default(cuid())
+  name         String
+  status       WorkflowStatus @default(DRAFT)
+  version      Int
+  triggerPieceKey String?
+  graphNodes   String?
+  graphEdges   String?
+  templateKey  String?
+  orgId        String?
+  disabled     Boolean @default(false)
+  createdBy    String?
+
+  runs WorkflowRun[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([templateKey])
+  @@index([orgId])
+  @@map("workflow")
+}
+
+model WorkflowRun {
+  id        String @id @default(cuid())
+  runId     String @unique
+  status    RunStatus @default(RUNNING)
+  workflowId String?
+  version   Int
+  caseId    String?
+  trigger   String
+  context   String?
+  error     String?
+  startedAt DateTime
+  finishedAt DateTime?
+  attempts  Int @default(0)
+
+  workflow  Workflow?   @relation(fields: [workflowId], references: [id], onDelete: SetNull)
+  case      ApplicationCase? @relation(fields: [caseId], references: [id], onDelete: SetNull)
+
+  nodeRuns   WorkflowNodeRun[]
+  waitpoints WorkflowWaitpoint[]
+  waits      WorkflowWait[]
+  approvals  WorkflowApproval[]
+  stepResults WorkflowStepResult[]
+  eventLogs  WorkflowEventLog[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([runId])
+  @@index([status])
+  @@index([workflowId])
+  @@index([caseId])
+  @@map("workflowRun")
+}
+
+model WorkflowNodeRun {
+  id           String @id @default(cuid())
+  nodeKey      String
+  pieceKey     String
+  name         String
+  workflowRunId String
+  status       NodeRunStatus @default(RUNNING)
+  inputPreview String?
+  outputPreview String?
+  error        String?
+  attempts     Int @default(0)
+  startedAt    DateTime
+  finishedAt   DateTime?
+  approvalDecision String?
+  decisionReason String?
+  approverId   String?
+
+  workflowRun WorkflowRun @relation(fields: [workflowRunId], references: [id], onDelete: Cascade)
+  waitpoints WorkflowWaitpoint[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([workflowRunId])
+  @@index([status])
+  @@map("workflowNodeRun")
+}
+
+model WorkflowWaitpoint {
+  id             String @id @default(cuid())
+  runId          String
+  nodeRunId      String
+  kind           WaitpointKind @default(APPROVAL)
+  resumeToken    String @unique
+  eventKind      String?
+  expiresAt      DateTime
+  contextSnapshot String?
+  status         WaitpointStatus @default(WAITING)
+  resumedBy      String?
+  resumedAt      DateTime?
+  resumePayload  String?
+
+  workflowRun WorkflowRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  nodeRun     WorkflowNodeRun @relation(fields: [nodeRunId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([runId])
+  @@index([nodeRunId])
+  @@index([resumeToken])
+  @@index([status])
+  @@index([expiresAt])
+  @@map("workflowWaitpoint")
+}
+
+model WorkflowStepClaim {
+  id      String @id @default(cuid())
+  scope   String
+  key     String
+  claimedAt DateTime
+
+  @@unique([scope, key])
+  @@index([scope])
+  @@map("workflowStepClaim")
+}
+
+model AuditEvent {
+  id          String @id @default(cuid())
+  action      String
+  outcome     AuditOutcome @default(SUCCESS)
+  actor       String
+  actorId     String?
+  targetId    String?
+  targetType  String?
+  before      String?
+  after       String?
+  reason      String?
+  correlationId String?
+  occurredAt  DateTime
+
+  caseId String?
+  case   ApplicationCase? @relation(fields: [caseId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([action])
+  @@index([outcome])
+  @@index([actor])
+  @@index([caseId])
+  @@index([correlationId])
+  @@index([occurredAt])
+  @@map("auditEvent")
+}
+model AppointmentType {
+	id               String   @id @default(uuid())
+	ownerUserId      String?
+	slug             String
+	title            String
+	description      String?
+	durationMinutes  Int      @default(30)
+	bufferMinutes    Int      @default(0)
+	timezone         String   @default("UTC")
+	availability     Json
+	provider         String   @default("manual")
+	meetingProvider  String   @default("none")
+	color            String?
+	enabled          Boolean  @default(true)
+	createdAt        DateTime @default(now())
+	updatedAt        DateTime @updatedAt
+	owner            User?    @relation(fields: [ownerUserId], references: [id], onDelete: SetNull)
+	bookings         Booking[]
+
+	@@unique([ownerUserId, slug])
+	@@index([ownerUserId])
+	@@index([enabled])
+}
+
+model Booking {
+	id              String   @id @default(uuid())
+	appointmentTypeId String?
+	ownerUserId     String?
+	contactId       String?
+	title           String
+	fullName        String?
+	email           String?
+	notes           String?
+	provider        String   @default("manual")
+	status          String   @default("scheduled")
+	startsAt        DateTime
+	endsAt          DateTime
+	meetingUrl      String?
+	externalEventId String?
+	metadata        Json     @default("{}")
+	cancelledAt     DateTime?
+	completedAt     DateTime?
+	createdAt       DateTime @default(now())
+	updatedAt       DateTime @updatedAt
+	appointmentType AppointmentType? @relation(fields: [appointmentTypeId], references: [id], onDelete: SetNull)
+	owner           User?    @relation(fields: [ownerUserId], references: [id], onDelete: SetNull)
+
+	@@index([ownerUserId, startsAt])
+	@@index([status, startsAt])
+	@@index([externalEventId])
+}
+
+
+enum WorkflowWaitStatus {
+	active
+	resumed
+	timed_out
+	cancelled
+}
+
+enum WorkflowWaitResumeReason {
+	event_match
+	timeout
+	manual
+	cancelled
+}
+
+model WorkflowWait {
+	id             String                  @id @default(uuid())
+	runId          String
+	stepName       String
+	matchEvent     String
+	matchPredicate Json
+	timeoutAt      DateTime?
+	status         WorkflowWaitStatus      @default(active)
+	resumedAt      DateTime?
+	resumedByRunEventId String?
+	resumedReason  WorkflowWaitResumeReason?
+	createdAt      DateTime                @default(now())
+	updatedAt      DateTime                @updatedAt
+	run            WorkflowRun             @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+	@@index([status, timeoutAt])
+	@@index([runId, stepName])
+	@@index([matchEvent, status])
+}
+
+enum WorkflowApprovalStatus {
+	pending
+	approved
+	rejected
+	timed_out
+	cancelled
+}
+
+model WorkflowApproval {
+	id               String                  @id @default(uuid())
+	runId            String
+	stepName         String
+	requestedByUserId String?
+	approverHint     String?
+	reason           String
+	payload          Json                    @default("{}")
+	status           WorkflowApprovalStatus @default(pending)
+	timeoutAt        DateTime?
+	resolvedByUserId String?
+	resolvedAt       DateTime?
+	resolutionNote   String?
+	createdAt        DateTime                @default(now())
+	updatedAt        DateTime                @updatedAt
+	run              WorkflowRun             @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+	@@index([status, timeoutAt])
+	@@index([runId, stepName])
+}
+
+
+enum SendClaimOutcome {
+	unknown
+	sent
+	failed
+}
+
+model SendClaim {
+	id              String          @id @default(uuid())
+	ownerUserId     String?
+	workflowRunId   String?
+	channel         String
+	kind            String
+	stepNumber      Int
+	idempotencyKey  String
+	outcome         SendClaimOutcome @default(unknown)
+	providerReference String?
+	claimedAt       DateTime        @default(now())
+	resolvedAt      DateTime?
+	lastError       String?
+	owner           User?           @relation(fields: [ownerUserId], references: [id], onDelete: SetNull)
+
+	@@unique([channel, kind, stepNumber, idempotencyKey])
+	@@index([outcome, claimedAt])
+	@@index([ownerUserId])
+}
+
+
+enum ConnectedAccountStatus {
+	pending
+	active
+	expired
+	revoked
+	error
+}
+
+model ConnectedAccount {
+	id           String                  @id @default(uuid())
+	ownerUserId  String?
+	provider     String
+	handle       String
+	displayName  String?
+	status       ConnectedAccountStatus  @default(pending)
+	scopes       String[]                @default([])
+	accessToken  String?
+	refreshToken String?
+	expiresAt    DateTime?
+	metadata     Json                    @default("{}")
+	createdAt    DateTime                @default(now())
+	updatedAt    DateTime                @updatedAt
+	owner        User?                   @relation(fields: [ownerUserId], references: [id], onDelete: SetNull)
+	messages     ChannelMessage[]
+
+	@@unique([ownerUserId, provider, handle])
+	@@index([provider, status])
+}
+
+enum ChannelMessageDirection {
+	inbound
+	outbound
+}
+
+model ChannelMessage {
+	id                String                  @id @default(uuid())
+	connectedAccountId String?
+	ownerUserId       String?
+	provider          String
+	externalId        String
+	direction         ChannelMessageDirection
+	threadId          String?
+	senderHandle      String
+	recipientHandle   String?
+	body              String?
+	media             Json                    @default("[]")
+	raw               Json                    @default("{}")
+	occurredAt        DateTime
+	processedAt       DateTime?
+	createdAt         DateTime                @default(now())
+	connectedAccount  ConnectedAccount?       @relation(fields: [connectedAccountId], references: [id], onDelete: SetNull)
+	owner             User?                   @relation(fields: [ownerUserId], references: [id], onDelete: SetNull)
+
+	@@unique([provider, externalId])
+	@@index([ownerUserId, occurredAt])
+	@@index([provider, threadId])
+}
+
+
+model AgentRunReceipt {
+	id           String    @id @default(uuid())
+	ownerUserId  String?
+	agentKind    String
+	externalRunId String
+	status       String
+	summary      String
+	metrics      Json      @default("{}")
+	startedAt    DateTime
+	finishedAt   DateTime?
+	createdAt    DateTime  @default(now())
+	owner        User?     @relation(fields: [ownerUserId], references: [id], onDelete: SetNull)
+
+	@@index([ownerUserId, createdAt])
+	@@index([agentKind, status])
+	@@index([externalRunId])
+}
+
+enum AgentDraftStatus {
+	pending
+	approved
+	rejected
+	executed
+	expired
+}
+
+model AgentActionDraft {
+	id               String            @id @default(uuid())
+	ownerUserId      String?
+	agentKind        String
+	actionKind       String
+	reason           String
+	payload          Json              @default("{}")
+	status           AgentDraftStatus  @default(pending)
+	resolvedByUserId String?
+	resolvedAt       DateTime?
+	resolutionNote   String?
+	executedAt       DateTime?
+	createdAt        DateTime          @default(now())
+	updatedAt        DateTime          @updatedAt
+	owner            User?             @relation(fields: [ownerUserId], references: [id], onDelete: SetNull)
+
+	@@index([status, createdAt])
+	@@index([ownerUserId, actionKind])
+}
+
+model AgentReflectionEvent {
+	id            String   @id @default(uuid())
+	ownerUserId   String?
+	runReceiptId  String?
+	kind          String
+	content       String
+	createdAt     DateTime @default(now())
+	owner         User?    @relation(fields: [ownerUserId], references: [id], onDelete: SetNull)
+
+	@@index([ownerUserId, kind])
+	@@index([runReceiptId])
+}
+
+model AgentTasteSession {
+	id           String   @id @default(uuid())
+	ownerUserId  String?
+	topic        String
+	preferences  Json     @default("{}")
+	confidence   Float?
+	createdAt    DateTime @default(now())
+	owner        User?    @relation(fields: [ownerUserId], references: [id], onDelete: SetNull)
+
+	@@index([ownerUserId, topic])
+}
+
+model EvalRun {
+	id           String   @id @default(uuid())
+	ownerUserId  String?
+	kind         String
+	targetKind   String
+	targetId     String
+	summary      Json     @default("{}")
+	passed       Boolean?
+	createdAt    DateTime @default(now())
+	owner        User?    @relation(fields: [ownerUserId], references: [id], onDelete: SetNull)
+
+	@@index([ownerUserId, kind])
+	@@index([targetKind, targetId])
+}
+
+
+model Brain {
+	id          String       @id @default(uuid())
+	ownerUserId String?
+	name        String
+	description String?
+	createdAt   DateTime     @default(now())
+	updatedAt   DateTime     @updatedAt
+	owner       User?        @relation(fields: [ownerUserId], references: [id], onDelete: SetNull)
+	notes       BrainNote[]
+	outcomes    BrainOutcome[]
+
+	@@index([ownerUserId])
+}
+
+model BrainNote {
+	id        String   @id @default(uuid())
+	brainId   String
+	title     String
+	body      String
+	tags      String[] @default([])
+	source    String   @default("manual")
+	createdAt DateTime @default(now())
+	updatedAt DateTime @updatedAt
+	brain     Brain    @relation(fields: [brainId], references: [id], onDelete: Cascade)
+
+	@@index([brainId])
+}
+
+model BrainOutcome {
+	id         String   @id @default(uuid())
+	brainId    String
+	label      String
+	metrics    Json     @default("{}")
+	noteIds    String[] @default([])
+	occurredAt DateTime
+	createdAt  DateTime @default(now())
+	brain      Brain    @relation(fields: [brainId], references: [id], onDelete: Cascade)
+
+	@@index([brainId, occurredAt])
+}
+
+
+model SoulProfile {
+	id          String   @id @default(uuid())
+	ownerUserId String?
+	parentId    String?
+	name        String
+	labels      Json     @default("{}")
+	tone        String   @default("professional")
+	positioning String?
+	branding    Json     @default("{}")
+	createdAt   DateTime @default(now())
+	updatedAt   DateTime @updatedAt
+	owner       User?    @relation(fields: [ownerUserId], references: [id], onDelete: SetNull)
+	parent      SoulProfile?  @relation("SoulInheritance", fields: [parentId], references: [id], onDelete: SetNull)
+	children    SoulProfile[] @relation("SoulInheritance")
+
+	@@index([ownerUserId])
+	@@index([parentId])
+}
+
+
+model WorkspaceSecret {
+	id            String   @id @default(uuid())
+	ownerUserId   String?
+	name          String
+	ciphertext    String
+	iv            String
+	authTag       String
+	keyVersion    Int      @default(1)
+	lastRotatedAt DateTime?
+	createdAt     DateTime @default(now())
+	updatedAt     DateTime @updatedAt
+	owner         User?    @relation(fields: [ownerUserId], references: [id], onDelete: SetNull)
+
+	@@unique([ownerUserId, name])
+	@@index([ownerUserId])
+}
+
+enum WorkspaceDomainStatus {
+	pending
+	verified
+	failed
+}
+
+model WorkspaceDomain {
+	id                String                  @id @default(uuid())
+	ownerUserId       String?
+	domain            String
+	status            WorkspaceDomainStatus   @default(pending)
+	verificationToken String
+	verifiedAt        DateTime?
+	createdAt         DateTime                @default(now())
+	updatedAt         DateTime                @updatedAt
+	owner             User?                   @relation(fields: [ownerUserId], references: [id], onDelete: SetNull)
+
+	@@unique([domain])
+	@@index([ownerUserId, status])
+}
+
+model PortalAccessCode {
+	id           String    @id @default(uuid())
+	ownerUserId  String?
+	codeHash     String
+	label        String
+	maxUses      Int       @default(1)
+	usedCount    Int       @default(0)
+	expiresAt    DateTime?
+	revokedAt    DateTime?
+	createdAt    DateTime  @default(now())
+	owner        User?     @relation(fields: [ownerUserId], references: [id], onDelete: SetNull)
+
+	@@unique([codeHash])
+	@@index([ownerUserId])
+}
+
+model SuppressionEntry {
+	id          String   @id @default(uuid())
+	ownerUserId String?
+	channel     String
+	handle      String
+	reason      String   @default("unsubscribe")
+	createdAt   DateTime @default(now())
+	owner       User?    @relation(fields: [ownerUserId], references: [id], onDelete: SetNull)
+
+	@@unique([ownerUserId, channel, handle])
+	@@index([channel, handle])
+}
+
+
+model WorkflowStepResult {
+	id        String   @id @default(uuid())
+	runId     String
+	stepName  String
+	attempt   Int      @default(1)
+	status    String
+	input     Json?
+	output    Json?
+	error     String?
+	createdAt DateTime @default(now())
+	run       WorkflowRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+	@@index([runId, stepName])
+	@@index([status])
+}
+
+model WorkflowEventLog {
+	id        String   @id @default(uuid())
+	runId     String
+	stepName  String?
+	kind      String
+	payload   Json     @default("{}")
+	createdAt DateTime @default(now())
+	run       WorkflowRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+	@@index([runId, createdAt])
+	@@index([kind])
 }

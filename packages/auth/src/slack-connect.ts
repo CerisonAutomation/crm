@@ -68,8 +68,8 @@ function startsSlackConnect(path: string, body: JsonValue): boolean {
 	return parsed.success && parsed.data.providerId === SLACK_PROVIDER_ID;
 }
 
-function completesSlackConnect(path: string, params: JsonValue): boolean {
+function completesSlackConnect(path: string, params: JsonValue | undefined): boolean {
 	if (!path.startsWith(OAUTH_CALLBACK_PATH)) return false;
-	const parsed = callbackParams.safeParse(params);
+	const parsed = callbackParams.safeParse(params ?? null);
 	return parsed.success && parsed.data.providerId === SLACK_PROVIDER_ID;
 }

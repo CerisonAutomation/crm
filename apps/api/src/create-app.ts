@@ -26,6 +26,41 @@ export async function createApp(): Promise<NestExpressApplication> {
 	);
 
 	app.use(helmet());
+	// Scoped JSON parsing for channel webhooks with raw-body capture so Meta/
+	// LinkedIn signature verification can run over the exact received bytes.
+	// Self-contained middleware (no body-parser dependency): collects the raw
+	// bytes, stores them on `req.rawBody`, and parses `req.body`.
+	app.use(
+		"/api/channels",
+		(req: Request, res: Response, next: NextFunction) => {
+			if (req.method === "GET" || req.method === "HEAD") {
+				next();
+				return;
+			}
+			const chunks: Buffer[] = [];
+			req.on("data", (chunk: Buffer) => {
+				chunks.push(chunk);
+			});
+			req.on("end", () => {
+				const raw = Buffer.concat(chunks);
+				(req as unknown as { rawBody?: Buffer }).rawBody = raw;
+				if (raw.length === 0) {
+					(req as unknown as { body?: unknown }).body = {};
+					next();
+					return;
+				}
+				try {
+					(req as unknown as { body?: unknown }).body = JSON.parse(raw.toString("utf8"));
+					next();
+				} catch {
+					res.status(400).json({ message: "Invalid JSON body" });
+				}
+			});
+			req.on("error", () => {
+				res.status(400).json({ message: "Request stream error" });
+			});
+		},
+	);
 	app.useGlobalPipes(
 		new ValidationPipe({
 			whitelist: true,
