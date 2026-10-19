@@ -61,7 +61,7 @@ export type PageModule = {
   essential?: boolean;
   description?: string;
   /** Lazy-loaded component — keeps the shell bundle small. */
-  component: () => Promise<{ default: React.ComponentType }>;
+  component: () => Promise<any>;
 };
 
 /**

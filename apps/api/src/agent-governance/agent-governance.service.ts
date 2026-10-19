@@ -110,8 +110,12 @@ export class AgentGovernanceService {
 	}
 
 	async listReceipts(ownerUserId: string, agentKind?: string, limit = 50) {
+		const where: Prisma.AgentRunReceiptWhereInput = { ownerUserId };
+		if (agentKind) {
+			where.agentKind = agentKind;
+		}
 		return this.db.agentRunReceipt.findMany({
-			where: { ownerUserId, ...(agentKind ? { agentKind } : {}) },
+			where,
 			orderBy: { createdAt: "desc" },
 			take: limit,
 		});
@@ -214,8 +218,12 @@ export class AgentGovernanceService {
 	}
 
 	async listReflections(ownerUserId: string, kind?: string) {
+		const where: Prisma.AgentReflectionEventWhereInput = { ownerUserId };
+		if (kind) {
+			where.kind = kind;
+		}
 		return this.db.agentReflectionEvent.findMany({
-			where: { ownerUserId, ...(kind ? { kind } : {}) },
+			where,
 			orderBy: { createdAt: "desc" },
 		});
 	}

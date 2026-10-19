@@ -88,22 +88,21 @@ export class WorkflowLedgerService {
 
 	async recordStepResult(input: StepResultInput): Promise<void> {
 		try {
-			await this.db.workflowStepResult.create({
-				data: {
-					id: randomUUID(),
-					runId: input.runId,
-					stepName: input.stepName,
-					attempt: input.attempt,
-					status: input.status,
-					...(input.input === undefined
-						? {}
-						: { input: capJson(input.input) as Prisma.InputJsonValue }),
-					...(input.output === undefined
-						? {}
-						: { output: capJson(input.output) as Prisma.InputJsonValue }),
-					error: input.error ? truncateText(input.error) : null,
-				},
-			});
+			const data: Prisma.WorkflowStepResultCreateInput = {
+				id: randomUUID(),
+				runId: input.runId,
+				stepName: input.stepName,
+				attempt: input.attempt,
+				status: input.status,
+				error: input.error ? truncateText(input.error) : null,
+			};
+			if (input.input !== undefined) {
+				data.input = capJson(input.input) as Prisma.InputJsonValue;
+			}
+			if (input.output !== undefined) {
+				data.output = capJson(input.output) as Prisma.InputJsonValue;
+			}
+			await this.db.workflowStepResult.create({ data });
 		} catch (error) {
 			// The ledger must never break the run it documents.
 			this.logger.warn(`Failed to record step result: ${String(error)}`);

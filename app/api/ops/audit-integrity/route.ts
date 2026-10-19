@@ -20,17 +20,25 @@ export async function GET(req: NextRequest) {
       db.auditEvent.count({ where: { orgId: ctx.orgId, createdAt: { gte: since }, correlationId: null } }),
       verifyChain(),
     ]);
+    const chainResult: {
+      ok: boolean;
+      checked: number;
+      mismatches: number;
+      details?: unknown[];
+    } = {
+      ok: chain.ok,
+      checked: chain.checked,
+      mismatches: chain.mismatches.length,
+    };
+    if (chain.mismatches.length > 0) {
+      chainResult.details = chain.mismatches.slice(0, 5);
+    }
     return jsonOk({
       windowDays: 30,
       total,
       systemRows: orphaned,
       uncorrelated,
-      chain: {
-        ok: chain.ok,
-        checked: chain.checked,
-        mismatches: chain.mismatches.length,
-        ...(chain.mismatches.length > 0 ? { details: chain.mismatches.slice(0, 5) } : {}),
-      },
+      chain: chainResult,
       ok: chain.ok,
       generatedAt: new Date().toISOString(),
     });

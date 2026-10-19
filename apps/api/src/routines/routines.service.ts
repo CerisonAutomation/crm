@@ -367,16 +367,18 @@ export class RoutinesService {
 			const next = routine.cronExpression
 				? nextCronRun(routine.cronExpression, now, routine.timezone)
 				: null;
+			const data: Prisma.RoutineUpdateInput = {
+				nextRunAt: next,
+				lastRunAt: now,
+				lastRunStatus: "queued",
+			};
+			if (next === null) {
+				data.enabled = false;
+				data.disabledReason = "scheduleExhausted";
+			}
 			await this.db.routine.update({
 				where: { id: routine.id },
-				data: {
-					nextRunAt: next,
-					lastRunAt: now,
-					lastRunStatus: "queued",
-					...(next === null
-						? { enabled: false, disabledReason: "scheduleExhausted" }
-						: {}),
-				},
+				data,
 			});
 			advanced += 1;
 		}

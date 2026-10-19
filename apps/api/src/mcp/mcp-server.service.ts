@@ -62,7 +62,7 @@ function sessionExists(sessionId: string | undefined): boolean {
 }
 
 function toolDescriptor(tool: McpTool): Record<string, unknown> {
-	return {
+	const descriptor: Record<string, unknown> = {
 		name: tool.name,
 		title: tool.title,
 		description: tool.description,
@@ -70,8 +70,11 @@ function toolDescriptor(tool: McpTool): Record<string, unknown> {
 			string,
 			unknown
 		>,
-		...(tool.annotations ? { annotations: tool.annotations } : {}),
 	};
+	if (tool.annotations) {
+		descriptor.annotations = tool.annotations;
+	}
+	return descriptor;
 }
 
 function errorResponse(
@@ -80,10 +83,14 @@ function errorResponse(
 	message: string,
 	data?: unknown,
 ): JsonRpcResponse {
+	const error: { code: number; message: string; data?: unknown } = { code, message };
+	if (data !== undefined) {
+		error.data = data;
+	}
 	return {
 		jsonrpc: "2.0",
 		id,
-		error: { code, message, ...(data === undefined ? {} : { data }) },
+		error,
 	};
 }
 

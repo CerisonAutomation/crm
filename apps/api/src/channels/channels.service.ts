@@ -247,15 +247,16 @@ export class ChannelsService {
 				`Recipient ${message.recipientHandle} is suppressed on ${providerId}`,
 			);
 		}
+		const where: Prisma.ConnectedAccountWhereInput = {
+			ownerUserId,
+			provider: providerId,
+			status: "active",
+		};
+		if (message.metadata?.handle) {
+			where.handle = String(message.metadata.handle);
+		}
 		const account = await this.db.connectedAccount.findFirst({
-			where: {
-				ownerUserId,
-				provider: providerId,
-				status: "active",
-				...(message.metadata?.handle
-					? { handle: String(message.metadata.handle) }
-					: {}),
-			},
+			where,
 			orderBy: { createdAt: "desc" },
 		});
 		if (!account)
@@ -395,8 +396,12 @@ export class ChannelsService {
 	}
 
 	async listMessages(ownerUserId: string, providerId?: string, limit = 50) {
+		const where: Prisma.ChannelMessageWhereInput = { ownerUserId };
+		if (providerId) {
+			where.provider = providerId;
+		}
 		return this.db.channelMessage.findMany({
-			where: { ownerUserId, ...(providerId ? { provider: providerId } : {}) },
+			where,
 			orderBy: { occurredAt: "desc" },
 			take: limit,
 		});

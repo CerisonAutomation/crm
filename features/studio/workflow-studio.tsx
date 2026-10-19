@@ -63,6 +63,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { createColumnHelper, DataTable } from "@/components/ui/data-table";
+import type { ColumnDef } from "@tanstack/react-table";
 import {
 	Dialog,
 	DialogContent,
@@ -2123,7 +2124,7 @@ export function StudioRuns() {
 	const [runLoading, setRunLoading] = useState(false);
 	const [decision, setDecision] = useState("");
 	const [approvalReason, setApprovalReason] = useState("");
-	const [cancelTarget, setCancelTarget] = useState<RunDetail | null>(null);
+	const [cancelTarget, setCancelTarget] = useState<RunRow | null>(null);
 	const [cancelReason, setCancelReason] = useState("");
 	const [busy, setBusy] = useState(false);
 
@@ -2304,23 +2305,23 @@ export function StudioRuns() {
 							<DataTable
 								columns={[
 									createColumnHelper<RunRow>().accessor("id", {
-										header: "Run",
+																			header: "Run",
 										cell: ({ row: { original: row } }) => (
 											<TableCell className="font-mono text-xs text-cobble-ink">
 												{shortId(row.id)}
 											</TableCell>
 										),
 									}),
-									createColumnHelper<RunRow>().accessor("workflow", {
-										header: "Workflow",
+									createColumnHelper<RunRow, string>().accessor("workflow", {
+																			header: "Workflow",
 										cell: ({ row: { original: row } }) => (
 											<TableCell className="text-sm text-cobble-ink">
 												{truncate(row.workflow.name, 26)}
 											</TableCell>
 										),
 									}),
-									createColumnHelper<RunRow>().accessor("case", {
-										header: "Case",
+									createColumnHelper<RunRow, string>().accessor("case", {
+																			header: "Case",
 										cell: ({ row: { original: row } }) => (
 											<TableCell className="font-mono text-xs text-muted-foreground">
 												{row.case?.reference ?? "—"}
@@ -2328,15 +2329,15 @@ export function StudioRuns() {
 										),
 									}),
 									createColumnHelper<RunRow>().accessor("trigger", {
-										header: "Trigger",
+																			header: "Trigger",
 										cell: ({ row: { original: row } }) => (
 											<TableCell className="text-sm text-iron-ink">
 												{truncate(row.trigger, 18)}
 											</TableCell>
 										),
 									}),
-									createColumnHelper<RunRow>().accessor("version", {
-										header: "Ver.",
+									createColumnHelper<RunRow, string>().accessor("version", {
+																			header: "Ver.",
 										cell: ({ row: { original: row } }) => (
 											<TableCell className="text-right text-xs tabular-nums text-muted-foreground">
 												v{row.version}
@@ -2344,7 +2345,7 @@ export function StudioRuns() {
 										),
 									}),
 									createColumnHelper<RunRow>().accessor("status", {
-										header: "Status",
+																			header: "Status",
 										cell: ({ row: { original: row } }) => (
 											<TableCell>
 												<StateBadge state={row.status} />
@@ -2352,7 +2353,7 @@ export function StudioRuns() {
 										),
 									}),
 									createColumnHelper<RunRow>().accessor("startedAt", {
-										header: "Started",
+																			header: "Started",
 										cell: ({ row: { original: row } }) => (
 											<TableCell className="whitespace-nowrap text-xs text-muted-foreground">
 												{fmtDate(row.startedAt)}
@@ -2360,7 +2361,7 @@ export function StudioRuns() {
 										),
 									}),
 									createColumnHelper<RunRow>().accessor("finishedAt", {
-										header: "Finished",
+																			header: "Finished",
 										cell: ({ row: { original: row } }) => (
 											<TableCell className="whitespace-nowrap text-xs text-muted-foreground">
 												{fmtDate(row.finishedAt)}
@@ -2368,7 +2369,7 @@ export function StudioRuns() {
 										),
 									}),
 									createColumnHelper<RunRow>().accessor("error", {
-										header: "Error",
+																			header: "Error",
 										cell: ({ row: { original: row } }) => (
 											<TableCell>
 												{row.error ? (
@@ -2401,7 +2402,7 @@ export function StudioRuns() {
 										),
 									}),
 									createColumnHelper<RunRow>().accessor("id", {
-										header: "Actions",
+																			header: "Actions",
 										cell: ({ row: { original: row } }) => (
 											<TableCell className="text-right">
 												<div className="flex items-center justify-end gap-1">

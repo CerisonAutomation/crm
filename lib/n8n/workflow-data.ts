@@ -362,7 +362,7 @@ export class ExpressionSandbox {
 			if (token === "(") {
 				const expr = parseExpression();
 				if (consume() !== ")") throw new Error("Expected )");
-				return expr;
+				return expr as ExpressionValue;
 			}
 			if (token === "!") {
 				return !parsePrimary();
@@ -402,7 +402,7 @@ export class ExpressionSandbox {
 			return this._resolvePath(token) as ExpressionValue;
 		};
 
-		const parseExpression = (): unknown => {
+		const parseExpression = (): ExpressionValue => {
 			const left = parsePrimary();
 			while (
 				peek() === "+" ||

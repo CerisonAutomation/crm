@@ -355,14 +355,12 @@ export class MessengerChannelProvider extends MetaChannelProvider {
 			recipient: { id: message.recipientHandle },
 			message: {
 				text: message.body,
-				...(message.mediaUrls?.length
+				attachment: message.mediaUrls?.length
 					? {
-							attachment: {
-								type: "image",
-								payload: { url: message.mediaUrls[0] },
-							},
+							type: "image" as const,
+							payload: { url: message.mediaUrls[0] },
 						}
-					: {}),
+					: undefined,
 			},
 		});
 	}

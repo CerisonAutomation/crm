@@ -139,16 +139,19 @@ export class WebhookDeliveryService implements DeliverWebhookPort {
 				? signWebhookPayload(args.secret, body)
 				: null;
 
+			const headers: Record<string, string> = {
+				...args.headers,
+				"Content-Type": "application/json",
+			};
+			if (signature) {
+				headers[WEBHOOK_SIGNATURE_HEADER] = signature;
+			}
 			const response = await ssrfSafeFetch(globalThis.fetch as FetchLike)(
 				args.url,
 				{
 					method: "POST",
 					signal: controller.signal,
-					headers: {
-						...args.headers,
-						"Content-Type": "application/json",
-						...(signature ? { [WEBHOOK_SIGNATURE_HEADER]: signature } : {}),
-					},
+					headers,
 					body,
 				},
 			);

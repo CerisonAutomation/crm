@@ -422,8 +422,12 @@ export class WorkflowGatesService {
 	}
 
 	async pendingApprovals(approverHint?: string) {
+		const where: Prisma.WorkflowApprovalWhereInput = { status: "pending" };
+		if (approverHint) {
+			where.approverHint = approverHint;
+		}
 		return this.db.workflowApproval.findMany({
-			where: { status: "pending", ...(approverHint ? { approverHint } : {}) },
+			where,
 			orderBy: { createdAt: "asc" },
 		});
 	}

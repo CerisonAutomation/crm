@@ -68,7 +68,11 @@ function request(
 	params?: Record<string, unknown>,
 	id: string | number = 1,
 ): JsonRpcRequest {
-	return { jsonrpc: "2.0", id, method, ...(params ? { params } : {}) };
+	const req: JsonRpcRequest = { jsonrpc: "2.0", id, method };
+	if (params) {
+		req.params = params;
+	}
+	return req;
 }
 
 describe("the MCP server protocol", () => {
